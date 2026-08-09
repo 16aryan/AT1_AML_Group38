@@ -66,7 +66,7 @@ To set up the project environment and install the required libraries:
 ```bash
 pip install -r requirements.txt
 ```
-This will automatically install our custom `nba_prep` feature engineering package in editable mode.
+This will automatically install my custom `nba_prep` feature engineering package in editable mode.
 
 ### 2. Preprocess Data and Engineer Features
 Run the dataset pipeline to clean the raw data (height, year, age) and generate the advanced basketball features:
@@ -81,10 +81,11 @@ Run the cross-validated model training script:
 python -m AT1_AML.modeling.train
 ```
 This will:
-- Execute a 5-Fold Stratified Cross-Validation using LightGBM.
-- Output overall AUPRC scores (target metric) and feature importances.
-- Save the final model to `models/lgb_model.txt`.
-- Save the predicted probabilities for the test set to `submission.csv` (ready for Kaggle upload).
+- Execute a 5-Fold Stratified Group Cross-Validation (grouped by `pid` to prevent player-level leakage) using an ensemble of **LightGBM**, **XGBoost**, and **CatBoost**.
+- Output overall AUPRC scores (target metric) for each individual model and the blended ensemble.
+- Apply player-level average post-processing to predictions.
+- Save the predicted probabilities for the test set to `submission.csv` (deduplicated by `pid` and ready for Kaggle upload).
 
 ### 4. Interactive Analysis
-An interactive end-to-end walkthrough notebook is also available at `notebooks/36120-26SP-group-student-AT1-experiment-1.ipynb`.
+My interactive end-to-end walkthrough notebook is available at `notebooks/36120-26SP-group-student-AT1-experiment-1.ipynb`.
+

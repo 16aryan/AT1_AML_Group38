@@ -10,13 +10,15 @@ from nba_prep.features import (
     calculate_true_shooting_percentage,
     calculate_defensive_impact,
     calculate_scoring_efficiency,
+    calculate_cumulative_features,
+    calculate_advanced_recruit_and_conference_features,
 )
 
 app = typer.Typer()
 
-def process_dataframe(df: pd.DataFrame, is_train: bool = True) -> pd.DataFrame:
+def process_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     """
-    Cleans and engineers features for a raw dataframe.
+    Cleans and engineers features for a combined dataframe.
     """
     processed = df.copy()
     
@@ -59,6 +61,17 @@ def process_dataframe(df: pd.DataFrame, is_train: bool = True) -> pd.DataFrame:
     # Calculate Usage-Offensive Rating Interaction
     processed["usage_ortg_interaction"] = processed["usg"] * processed["ORtg"]
     
+    # Compute cumulative player career features
+    logger.info("Sorting and computing cumulative player career features...")
+    processed = processed.sort_values(by=["pid", "year"])
+    cum_feats = calculate_cumulative_features(processed)
+    processed = pd.concat([processed, cum_feats], axis=1)
+    
+    # Compute advanced recruit and conference features
+    logger.info("Computing advanced recruit and conference features...")
+    adv_feats = calculate_advanced_recruit_and_conference_features(processed)
+    processed = pd.concat([processed, adv_feats], axis=1)
+    
     return processed
 
 @app.command()
@@ -72,11 +85,33 @@ def main(
     train = pd.read_csv(train_input, low_memory=False)
     test = pd.read_csv(test_input, low_memory=False)
     
-    logger.info("Processing train set...")
-    train_processed = process_dataframe(train, is_train=True)
+    logger.info(f"Original train size: {len(train)}")
+    train = train.drop_duplicates()
+    logger.info(f"Train size after dropping duplicates: {len(train)}")
     
-    logger.info("Processing test set...")
-    test_processed = process_dataframe(test, is_train=False)
+    # Add tracking columns to split and restore original order
+    train["is_train"] = 1
+    test["is_train"] = 0
+    train["orig_index"] = train.index
+    test["orig_index"] = test.index
+    
+    combined = pd.concat([train, test], axis=0, ignore_index=True)
+    
+    logger.info("Processing combined dataset...")
+    combined_processed = process_dataframe(combined)
+    
+    logger.info("Splitting datasets back...")
+    train_processed = combined_processed[combined_processed["is_train"] == 1].copy()
+    test_processed = combined_processed[combined_processed["is_train"] == 0].copy()
+    
+    # Restore original sorting
+    train_processed = train_processed.sort_values(by="orig_index")
+    test_processed = test_processed.sort_values(by="orig_index")
+    
+    # Drop helper columns
+    drop_cols = ["is_train", "orig_index"]
+    train_processed = train_processed.drop(columns=drop_cols)
+    test_processed = test_processed.drop(columns=drop_cols + ["label"], errors="ignore")
     
     logger.info("Saving processed datasets...")
     train_processed.to_csv(train_output, index=False)
@@ -86,3 +121,4 @@ def main(
 
 if __name__ == "__main__":
     app()
+
