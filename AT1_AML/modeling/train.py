@@ -185,6 +185,65 @@ def train_ensemble():
     
     submission.to_csv(submission_path, index=False)
     logger.success(f"Kaggle submission file saved to {submission_path}")
+    
+    # Train and save final models on the entire dataset
+    logger.info("--------------------------------------")
+    logger.info("Training final ensembled models on full training dataset...")
+    
+    # 1. Final LightGBM
+    logger.info("Training and saving final LightGBM model...")
+    X_lgb = X.copy()
+    for col in categorical_cols:
+        X_lgb[col] = X_lgb[col].astype("category")
+    final_lgb = lgb.LGBMClassifier(
+        n_estimators=1000,
+        learning_rate=0.01,
+        num_leaves=31,
+        max_depth=7,
+        subsample=0.8,
+        colsample_bytree=0.8,
+        class_weight=None,
+        random_state=42,
+        verbose=-1
+    )
+    final_lgb.fit(X_lgb, y)
+    lgb_save_path = MODELS_DIR / "final_lightgbm.txt"
+    final_lgb.booster_.save_model(str(lgb_save_path))
+    logger.success(f"Final LightGBM model saved to {lgb_save_path}")
+    
+    # 2. Final XGBoost
+    logger.info("Training and saving final XGBoost model...")
+    final_xgb = xgb.XGBClassifier(
+        n_estimators=1000,
+        learning_rate=0.01,
+        max_depth=6,
+        subsample=0.8,
+        colsample_bytree=0.8,
+        random_state=42
+    )
+    final_xgb.fit(X, y)
+    xgb_save_path = MODELS_DIR / "final_xgboost.json"
+    final_xgb.get_booster().save_model(str(xgb_save_path))
+    logger.success(f"Final XGBoost model saved to {xgb_save_path}")
+    
+    # 3. Final CatBoost
+    logger.info("Training and saving final CatBoost model...")
+    X_cat = X.copy()
+    for col in categorical_cols:
+        X_cat[col] = X_cat[col].astype(str)
+    final_cat = cat.CatBoostClassifier(
+        iterations=1000,
+        learning_rate=0.02,
+        depth=6,
+        cat_features=categorical_cols,
+        random_seed=42,
+        verbose=0
+    )
+    final_cat.fit(X_cat, y)
+    cat_save_path = MODELS_DIR / "final_catboost.cbm"
+    final_cat.save_model(str(cat_save_path), format="cbm")
+    logger.success(f"Final CatBoost model saved to {cat_save_path}")
+    logger.info("--------------------------------------")
 
 if __name__ == "__main__":
     train_ensemble()
