@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 from loguru import logger
 import typer
-from AT1_AML.config import RAW_DATA_DIR, PROCESSED_DATA_DIR
+from AT1_AML.config import RAW_DATA_DIR, PROCESSED_DATA_DIR, INTERIM_DATA_DIR
 from nba_prep.cleaning import clean_height, clean_year, calculate_age
 from nba_prep.features import (
     calculate_ast_tov_ratio,
@@ -16,9 +16,9 @@ from nba_prep.features import (
 
 app = typer.Typer()
 
-def process_dataframe(df: pd.DataFrame) -> pd.DataFrame:
+def clean_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     """
-    Cleans and engineers features for a combined dataframe.
+    Applies initial data cleaning steps to the raw dataframe.
     """
     processed = df.copy()
     
@@ -31,6 +31,14 @@ def process_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     processed["age"] = processed.apply(
         lambda r: calculate_age(r["year"], r["dob"]), axis=1
     )
+    
+    return processed
+
+def engineer_features(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Calculates advanced basketball metrics and cumulative player career features.
+    """
+    processed = df.copy()
     
     logger.info("Calculating advanced basketball features...")
     
@@ -78,6 +86,8 @@ def process_dataframe(df: pd.DataFrame) -> pd.DataFrame:
 def main(
     train_input: Path = RAW_DATA_DIR / "train.csv",
     test_input: Path = RAW_DATA_DIR / "test.csv",
+    train_interim_output: Path = INTERIM_DATA_DIR / "train_cleaned.csv",
+    test_interim_output: Path = INTERIM_DATA_DIR / "test_cleaned.csv",
     train_output: Path = PROCESSED_DATA_DIR / "train_processed.csv",
     test_output: Path = PROCESSED_DATA_DIR / "test_processed.csv",
 ):
@@ -97,10 +107,27 @@ def main(
     
     combined = pd.concat([train, test], axis=0, ignore_index=True)
     
-    logger.info("Processing combined dataset...")
-    combined_processed = process_dataframe(combined)
+    # Phase 1: Clean Data
+    logger.info("Phase 1: Cleaning combined dataset...")
+    combined_cleaned = clean_dataframe(combined)
     
-    logger.info("Splitting datasets back...")
+    # Split cleaned data back and save to interim folder
+    logger.info("Splitting cleaned datasets back to save to interim...")
+    train_cleaned = combined_cleaned[combined_cleaned["is_train"] == 1].copy().sort_values(by="orig_index")
+    test_cleaned = combined_cleaned[combined_cleaned["is_train"] == 0].copy().sort_values(by="orig_index")
+    
+    train_cleaned = train_cleaned.drop(columns=["is_train", "orig_index"])
+    test_cleaned = test_cleaned.drop(columns=["is_train", "orig_index", "label"], errors="ignore")
+    
+    logger.info("Saving interim datasets...")
+    train_cleaned.to_csv(train_interim_output, index=False)
+    test_cleaned.to_csv(test_interim_output, index=False)
+    
+    # Phase 2: Feature Engineering
+    logger.info("Phase 2: Running feature engineering on interim data...")
+    combined_processed = engineer_features(combined_cleaned)
+    
+    logger.info("Splitting processed datasets back...")
     train_processed = combined_processed[combined_processed["is_train"] == 1].copy()
     test_processed = combined_processed[combined_processed["is_train"] == 0].copy()
     
@@ -121,4 +148,3 @@ def main(
 
 if __name__ == "__main__":
     app()
-
