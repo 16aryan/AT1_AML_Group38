@@ -4,7 +4,18 @@
     <img src="https://img.shields.io/badge/CCDS-Project%20template-328F97?logo=cookiecutter" />
 </a>
 
-AT1_ML
+# NBA Career Longevity Prediction
+
+## Background & Prediction Target
+The goal of this project is to predict whether a U.S. college basketball player will go on to have a sustained NBA career, defined as:
+
+**Playing at least 3 seasons in the NBA.**
+
+The binary target variable (`label` in `train.csv`) represents exactly this definition:
+- **`label = 1`**: The player achieved a sustained NBA career (played at least 3 seasons in the league).
+- **`label = 0`**: The player did not achieve a sustained NBA career (played less than 3 seasons, or never made the league).
+
+The machine learning models (LightGBM, XGBoost, and CatBoost) are trained using `y = train["label"]` as the target and predict the continuous probability of this label being 1. The evaluation metric is Area Under the Precision-Recall Curve (AUPRC).
 
 ## Project Organization
 
