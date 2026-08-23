@@ -28,68 +28,55 @@ def main(
     drop_cols = ["pid", "label", "ht", "yr", "dob", "type", "num"]
     feature_cols = [col for col in train.columns if col not in drop_cols]
     
-    X_train = train[feature_cols]
-    X_test = test[feature_cols]
+    X_train = train[feature_cols].copy()
+    X_test = test[feature_cols].copy()
     
     # Encode categorical features matching the training scheme
     categorical_cols = ["team", "conf", "role"]
     for col in categorical_cols:
         if col in X_train.columns:
             categories = pd.concat([X_train[col], X_test[col]]).dropna().unique()
+            X_train[col] = (pd.Categorical(X_train[col], categories=categories).codes + 1).astype(int)
             X_test[col] = (pd.Categorical(X_test[col], categories=categories).codes + 1).astype(int)
             
-    # Load the 3 finalized ensembled models
-    lgb_model_path = MODELS_DIR / "final_lightgbm.txt"
-    xgb_model_path = MODELS_DIR / "final_xgboost.json"
-    cat_model_path = MODELS_DIR / "final_catboost.cbm"
+    # Filter test set for last college seasons
+    test_last_indices = test.groupby('pid')['career_season_num'].idxmax()
+    X_test_last = X_test.loc[test_last_indices].copy()
+    test_last_pids = test.loc[test_last_indices, 'pid'].values
     
-    if not (lgb_model_path.exists() and xgb_model_path.exists() and cat_model_path.exists()):
-        logger.error("Trained models not found. Please run model training first.")
-        return
-        
-    logger.info("Loading trained models...")
-    
-    # 1. LightGBM Booster
-    model_lgb = lgb.Booster(model_file=str(lgb_model_path))
-    X_test_lgb = X_test.copy()
+    logger.info("Loading trained models for Last-Season Ensemble...")
+    # 1. Last-Season LGBM
+    model_lgb = lgb.Booster(model_file=str(MODELS_DIR / "final_lightgbm.txt"))
+    X_test_lgb = X_test_last.copy()
     for col in categorical_cols:
         X_test_lgb[col] = X_test_lgb[col].astype("category")
     preds_lgb = model_lgb.predict(X_test_lgb)
     
-    # 2. XGBoost Booster
+    # 2. Last-Season XGBoost
     model_xgb = xgb.Booster()
-    model_xgb.load_model(str(xgb_model_path))
-    dtest = xgb.DMatrix(X_test)
-    preds_xgb = model_xgb.predict(dtest)
+    model_xgb.load_model(str(MODELS_DIR / "final_xgboost.json"))
+    dtest_last = xgb.DMatrix(X_test_last)
+    preds_xgb = model_xgb.predict(dtest_last)
     
-    # 3. CatBoost Classifier
+    # 3. Last-Season CatBoost
     model_cat = cat.CatBoostClassifier()
-    model_cat.load_model(str(cat_model_path), format="cbm")
-    X_test_cat = X_test.copy()
+    model_cat.load_model(str(MODELS_DIR / "final_catboost.cbm"), format="cbm")
+    X_test_cat = X_test_last.copy()
     for col in categorical_cols:
         X_test_cat[col] = X_test_cat[col].astype(str)
     preds_cat = model_cat.predict_proba(X_test_cat)[:, 1]
     
-    # Perform blending (40% LGB + 30% XGB + 30% CatBoost)
-    logger.info("Blending ensembled model predictions...")
+    # Blend predictions (Last-Season only)
     blend_preds = 0.4 * preds_lgb + 0.3 * preds_xgb + 0.3 * preds_cat
     
-    # Format submission file
+    # Save final predictions
     submission = pd.DataFrame({
-        "pid": test["pid"],
+        "pid": test_last_pids,
         "label": blend_preds
     })
     
-    # Apply player-level average post-processing
-    logger.info("Applying player-level average post-processing...")
-    submission['label'] = submission.groupby('pid')['label'].transform('mean')
-    
-    # Deduplicate by player ID (pid) to match unique test player count
-    logger.info("Deduplicating predictions by player ID...")
-    submission = submission.drop_duplicates(subset=["pid"])
-    
     submission.to_csv(predictions_output_path, index=False)
-    logger.success(f"Predictions successfully generated and saved to {predictions_output_path}")
+    logger.success(f"Predictions successfully generated and saved to {predictions_output_path} ({len(submission)} rows)")
 
 if __name__ == "__main__":
     app()

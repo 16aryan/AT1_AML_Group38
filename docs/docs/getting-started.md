@@ -28,7 +28,7 @@ This command runs in two phases:
 ---
 
 ## 3. Training the Models
-Run the training script to run 5-Fold Stratified Group Cross-Validation, blend the predictions, and serialize the finalized models:
+Run the training script to run 5-Fold Cross-Validation on the last college season of each player, blend the predictions, and serialize the finalized models:
 
 ```bash
 python -m AT1_AML.modeling.train
@@ -36,9 +36,9 @@ python -m AT1_AML.modeling.train
 
 This command will:
 1. Load features and apply robust categorical encoding.
-2. Train LightGBM, XGBoost, and CatBoost models across 5 folds.
-3. Blend the predictions (40% LightGBM, 30% XGBoost, 30% CatBoost).
-4. Apply player-level average post-processing and save `submission.csv` (deduplicated by `pid`).
+2. Filter the dataset to train only on the final college season for each player.
+3. Train LightGBM, XGBoost, and CatBoost models across 5 folds.
+4. Blend the predictions (40% LightGBM, 30% XGBoost, 30% CatBoost) and save `submission.csv` (deduplicated by `pid` automatically).
 5. Fit and serialize finalized full-dataset models to the `models/` directory.
 
 ---
@@ -48,8 +48,8 @@ To run all unit tests for the data cleaning, basketball features, cumulative sta
 
 ```bash
 # Run unit tests in the package directory
-python -m pytest 36120-26SP-group-student-package/tests
+python -m pytest 36120-26SP-group1-149874-package/tests
 
 # Run verification tests in the project directory
-python -m pytest AT1_AML/tests
+python -m pytest tests
 ```

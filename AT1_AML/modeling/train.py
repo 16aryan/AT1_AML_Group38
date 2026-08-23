@@ -3,7 +3,7 @@ import numpy as np
 import lightgbm as lgb
 import xgboost as xgb
 import catboost as cat
-from sklearn.model_selection import StratifiedGroupKFold
+from sklearn.model_selection import StratifiedKFold
 from sklearn.metrics import average_precision_score
 from pathlib import Path
 from loguru import logger
@@ -27,10 +27,10 @@ def train_ensemble():
     
     logger.info(f"Using {len(feature_cols)} features for model training.")
     
-    X = train[feature_cols]
-    y = train["label"]
-    groups = train["pid"]
-    X_test = test[feature_cols]
+    X = train[feature_cols].copy()
+    y = train["label"].copy()
+    groups = train["pid"].copy()
+    X_test = test[feature_cols].copy()
     
     # Configure categorical features robustly across all models
     categorical_cols = ["team", "conf", "role"]
@@ -41,30 +41,42 @@ def train_ensemble():
             X[col] = (pd.Categorical(X[col], categories=categories).codes + 1).astype(int)
             X_test[col] = (pd.Categorical(X_test[col], categories=categories).codes + 1).astype(int)
             
-    # CV setup (Stratified Group K-Fold to prevent player-level leakage)
-    gkf = StratifiedGroupKFold(n_splits=5, shuffle=True, random_state=42)
+    # =========================================================================
+    # TRAINING LAST-SEASON ONLY ENSEMBLE
+    # =========================================================================
+    logger.info("--- TRAINING LAST-SEASON ONLY ENSEMBLE ---")
     
-    # Out of fold predictions
-    oof_lgb = np.zeros(len(train))
-    oof_xgb = np.zeros(len(train))
-    oof_cat = np.zeros(len(train))
+    # Find the indices of each player's last college season
+    last_season_indices = train.groupby('pid')['career_season_num'].idxmax()
+    train_last = train.loc[last_season_indices]
     
-    # Test predictions
-    test_lgb = np.zeros(len(test))
-    test_xgb = np.zeros(len(test))
-    test_cat = np.zeros(len(test))
+    X_last = X.loc[last_season_indices].copy()
+    y_last = y.loc[last_season_indices].copy()
     
-    logger.info("Starting 5-Fold Stratified Group Cross-Validation...")
-    for fold, (train_idx, val_idx) in enumerate(gkf.split(X, y, groups)):
-        X_train, y_train = X.iloc[train_idx], y.iloc[train_idx]
-        X_val, y_val = X.iloc[val_idx], y.iloc[val_idx]
+    # Filter test set for each player's last college season
+    test_last_indices = test.groupby('pid')['career_season_num'].idxmax()
+    X_test_last = X_test.loc[test_last_indices].copy()
+    test_last_pids = test.loc[test_last_indices, 'pid'].values
+    
+    # standard k-fold since groups contain 1 row per player
+    kf_last = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+    
+    oof_lgb = np.zeros(len(train_last))
+    oof_xgb = np.zeros(len(train_last))
+    oof_cat = np.zeros(len(train_last))
+    
+    test_lgb = np.zeros(len(X_test_last))
+    test_xgb = np.zeros(len(X_test_last))
+    test_cat = np.zeros(len(X_test_last))
+    
+    for fold, (train_idx, val_idx) in enumerate(kf_last.split(X_last, y_last)):
+        X_train, y_train = X_last.iloc[train_idx], y_last.iloc[train_idx]
+        X_val, y_val = X_last.iloc[val_idx], y_last.iloc[val_idx]
         
-        # 1. Train LightGBM
-        logger.info(f"--- Fold {fold + 1}: Training LightGBM ---")
-        # For LightGBM, convert categorical cols to category dtype
+        # 1. LightGBM
         X_tr_lgb = X_train.copy()
         X_v_lgb = X_val.copy()
-        X_t_lgb = X_test.copy()
+        X_t_lgb = X_test_last.copy()
         for col in categorical_cols:
             X_tr_lgb[col] = X_tr_lgb[col].astype("category")
             X_v_lgb[col] = X_v_lgb[col].astype("category")
@@ -74,10 +86,9 @@ def train_ensemble():
             n_estimators=1500,
             learning_rate=0.01,
             num_leaves=31,
-            max_depth=7,
+            max_depth=6,
             subsample=0.8,
             colsample_bytree=0.8,
-            class_weight=None,
             random_state=42 + fold,
             verbose=-1
         )
@@ -86,17 +97,14 @@ def train_ensemble():
             eval_set=[(X_v_lgb, y_val)],
             callbacks=[lgb.early_stopping(stopping_rounds=100, verbose=False)]
         )
-        val_lgb_preds = model_lgb.predict_proba(X_v_lgb)[:, 1]
-        oof_lgb[val_idx] = val_lgb_preds
-        test_lgb += model_lgb.predict_proba(X_t_lgb)[:, 1] / gkf.n_splits
+        oof_lgb[val_idx] = model_lgb.predict_proba(X_v_lgb)[:, 1]
+        test_lgb += model_lgb.predict_proba(X_t_lgb)[:, 1] / kf_last.n_splits
         
-        # 2. Train XGBoost
-        logger.info(f"--- Fold {fold + 1}: Training XGBoost ---")
-        # Treat category codes as simple integers for XGBoost
+        # 2. XGBoost
         model_xgb = xgb.XGBClassifier(
             n_estimators=1500,
             learning_rate=0.01,
-            max_depth=6,
+            max_depth=5,
             subsample=0.8,
             colsample_bytree=0.8,
             random_state=42 + fold,
@@ -107,16 +115,13 @@ def train_ensemble():
             eval_set=[(X_val, y_val)],
             verbose=False
         )
-        val_xgb_preds = model_xgb.predict_proba(X_val)[:, 1]
-        oof_xgb[val_idx] = val_xgb_preds
-        test_xgb += model_xgb.predict_proba(X_test)[:, 1] / gkf.n_splits
+        oof_xgb[val_idx] = model_xgb.predict_proba(X_val)[:, 1]
+        test_xgb += model_xgb.predict_proba(X_test_last)[:, 1] / kf_last.n_splits
         
-        # 3. Train CatBoost
-        logger.info(f"--- Fold {fold + 1}: Training CatBoost ---")
-        # Treat codes as strings for CatBoost categorical features
+        # 3. CatBoost
         X_train_cat = X_train.copy()
         X_val_cat = X_val.copy()
-        X_test_cat = X_test.copy()
+        X_test_cat = X_test_last.copy()
         for col in categorical_cols:
             X_train_cat[col] = X_train_cat[col].astype(str)
             X_val_cat[col] = X_val_cat[col].astype(str)
@@ -135,117 +140,68 @@ def train_ensemble():
             X_train_cat, y_train,
             eval_set=(X_val_cat, y_val)
         )
-        val_cat_preds = model_cat.predict_proba(X_val_cat)[:, 1]
-        oof_cat[val_idx] = val_cat_preds
-        test_cat += model_cat.predict_proba(X_test_cat)[:, 1] / gkf.n_splits
-        
-        # Score fold AUPRCs
-        fold_lgb_score = average_precision_score(y_val, val_lgb_preds)
-        fold_xgb_score = average_precision_score(y_val, val_xgb_preds)
-        fold_cat_score = average_precision_score(y_val, val_cat_preds)
-        logger.info(f"Fold {fold + 1} AUPRC - LGB: {fold_lgb_score:.5f}, XGB: {fold_xgb_score:.5f}, CAT: {fold_cat_score:.5f}")
+        oof_cat[val_idx] = model_cat.predict_proba(X_val_cat)[:, 1]
+        test_cat += model_cat.predict_proba(X_test_cat)[:, 1] / kf_last.n_splits
 
-    # Evaluate individual models and blend
-    score_lgb = average_precision_score(y, oof_lgb)
-    score_xgb = average_precision_score(y, oof_xgb)
-    score_cat = average_precision_score(y, oof_cat)
+    score_lgb = average_precision_score(y_last, oof_lgb)
+    score_xgb = average_precision_score(y_last, oof_xgb)
+    score_cat = average_precision_score(y_last, oof_cat)
     
     oof_blend = 0.4 * oof_lgb + 0.3 * oof_xgb + 0.3 * oof_cat
-    score_blend = average_precision_score(y, oof_blend)
-    
-    # Evaluate player-averaged post-processing
-    temp_df = pd.DataFrame({'pid': groups, 'pred': oof_blend, 'label': y})
-    pid_mean_preds = temp_df.groupby('pid')['pred'].transform('mean')
-    pp_score_blend = average_precision_score(y, pid_mean_preds)
-    
-    logger.info("--------------------------------------")
-    logger.success(f"Overall OOF AUPRC - LightGBM: {score_lgb:.5f}")
-    logger.success(f"Overall OOF AUPRC - XGBoost:  {score_xgb:.5f}")
-    logger.success(f"Overall OOF AUPRC - CatBoost: {score_cat:.5f}")
-    logger.success(f"Overall OOF AUPRC - Blend:    {score_blend:.5f}")
-    logger.success(f"Overall OOF AUPRC - Blend (player-averaged post-processing): {pp_score_blend:.5f}")
-    logger.info("--------------------------------------")
-    
-    # Save submission file with ensembled predictions and post-processing
-    submission_path = PROJ_ROOT / "submission.csv"
     test_blend = 0.4 * test_lgb + 0.3 * test_xgb + 0.3 * test_cat
     
+    logger.info("--------------------------------------")
+    logger.success(f"Last-season LGB OOF AUPRC: {score_lgb:.5f}")
+    logger.success(f"Last-season XGB OOF AUPRC: {score_xgb:.5f}")
+    logger.success(f"Last-season CAT OOF AUPRC: {score_cat:.5f}")
+    logger.success(f"Last-season Unique Player AUPRC: {average_precision_score(y_last, oof_blend):.5f}")
+    logger.info("--------------------------------------")
+    
+    # Create final deduplicated submission file (6,261 rows)
+    submission_path = PROJ_ROOT / "submission.csv"
     submission = pd.DataFrame({
-        "pid": test["pid"],
+        "pid": test_last_pids,
         "label": test_blend
     })
     
-    # Apply player-level average post-processing
-    logger.info("Applying player-level average post-processing to test predictions...")
-    submission['label'] = submission.groupby('pid')['label'].transform('mean')
-    
-    # Deduplicate by player ID to prevent Kaggle duplicate ID error
-    logger.info("Deduplicating submission by player ID (pid)...")
-    submission = submission.drop_duplicates(subset=["pid"])
-    
     submission.to_csv(submission_path, index=False)
-    logger.success(f"Kaggle submission file saved to {submission_path}")
+    logger.success(f"Kaggle submission file successfully saved to {submission_path} ({len(submission)} rows)")
     
-    # Train and save final models on the entire dataset
+    # =========================================================================
+    # TRAINING & SAVING FINAL MODELS
+    # =========================================================================
     logger.info("--------------------------------------")
-    logger.info("Training final ensembled models on full training dataset...")
+    logger.info("Training and saving final models on full datasets...")
     
-    # 1. Final LightGBM
-    logger.info("Training and saving final LightGBM model...")
-    X_lgb = X.copy()
+    # LGBM
+    X_last_lgb = X_last.copy()
     for col in categorical_cols:
-        X_lgb[col] = X_lgb[col].astype("category")
-    final_lgb = lgb.LGBMClassifier(
-        n_estimators=1000,
-        learning_rate=0.01,
-        num_leaves=31,
-        max_depth=7,
-        subsample=0.8,
-        colsample_bytree=0.8,
-        class_weight=None,
-        random_state=42,
-        verbose=-1
+        X_last_lgb[col] = X_last_lgb[col].astype("category")
+    final_lgb_last = lgb.LGBMClassifier(
+        n_estimators=1000, learning_rate=0.01, num_leaves=31, max_depth=6, subsample=0.8, colsample_bytree=0.8, random_state=42, verbose=-1
     )
-    final_lgb.fit(X_lgb, y)
-    lgb_save_path = MODELS_DIR / "final_lightgbm.txt"
-    final_lgb.booster_.save_model(str(lgb_save_path))
-    logger.success(f"Final LightGBM model saved to {lgb_save_path}")
+    final_lgb_last.fit(X_last_lgb, y_last)
+    final_lgb_last.booster_.save_model(str(MODELS_DIR / "final_lightgbm.txt"))
     
-    # 2. Final XGBoost
-    logger.info("Training and saving final XGBoost model...")
-    final_xgb = xgb.XGBClassifier(
-        n_estimators=1000,
-        learning_rate=0.01,
-        max_depth=6,
-        subsample=0.8,
-        colsample_bytree=0.8,
-        random_state=42
+    # XGBoost
+    final_xgb_last = xgb.XGBClassifier(
+        n_estimators=1000, learning_rate=0.01, max_depth=5, subsample=0.8, colsample_bytree=0.8, random_state=42
     )
-    final_xgb.fit(X, y)
-    xgb_save_path = MODELS_DIR / "final_xgboost.json"
-    final_xgb.get_booster().save_model(str(xgb_save_path))
-    logger.success(f"Final XGBoost model saved to {xgb_save_path}")
+    final_xgb_last.fit(X_last, y_last)
+    final_xgb_last.get_booster().save_model(str(MODELS_DIR / "final_xgboost.json"))
     
-    # 3. Final CatBoost
-    logger.info("Training and saving final CatBoost model...")
-    X_cat = X.copy()
+    # CatBoost
+    X_last_cat = X_last.copy()
     for col in categorical_cols:
-        X_cat[col] = X_cat[col].astype(str)
-    final_cat = cat.CatBoostClassifier(
-        iterations=1000,
-        learning_rate=0.02,
-        depth=6,
-        cat_features=categorical_cols,
-        random_seed=42,
-        verbose=0
+        X_last_cat[col] = X_last_cat[col].astype(str)
+    final_cat_last = cat.CatBoostClassifier(
+        iterations=1000, learning_rate=0.02, depth=6, cat_features=categorical_cols, random_seed=42, verbose=0
     )
-    final_cat.fit(X_cat, y)
-    cat_save_path = MODELS_DIR / "final_catboost.cbm"
-    final_cat.save_model(str(cat_save_path), format="cbm")
-    logger.success(f"Final CatBoost model saved to {cat_save_path}")
+    final_cat_last.fit(X_last_cat, y_last)
+    final_cat_last.save_model(str(MODELS_DIR / "final_catboost.cbm"), format="cbm")
+    
+    logger.success("All final models successfully trained and saved!")
     logger.info("--------------------------------------")
 
 if __name__ == "__main__":
     train_ensemble()
-
-

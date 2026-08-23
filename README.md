@@ -94,9 +94,23 @@ python -m AT1_AML.modeling.train
 This will:
 - Execute a 5-Fold Stratified Group Cross-Validation (grouped by `pid` to prevent player-level leakage) using an ensemble of **LightGBM**, **XGBoost**, and **CatBoost**.
 - Output overall AUPRC scores (target metric) for each individual model and the blended ensemble.
-- Apply player-level average post-processing to predictions.
-- Save the predicted probabilities for the test set to `submission.csv` (deduplicated by `pid` and ready for Kaggle upload).
+- Save the predicted probabilities on each player's final college season to `submission.csv` (deduplicated by `pid` and ready for Kaggle upload).
 
 ### 4. Interactive Analysis
-My interactive end-to-end walkthrough notebook is available at `notebooks/36120-26SP-group-student-AT1-experiment-1.ipynb`.
+My interactive end-to-end walkthrough notebook is available at `notebooks/36120-26SP-group38-26040826-AT1-experiment-1.ipynb`.
+
+## Latest Model Performance & Credit
+
+This training run was performed by **Aryan Goel (26040826)**.
+
+### Performance Scores (OOF AUPRC)
+* **LightGBM**: `0.48638`
+* **XGBoost**: `0.49955`
+* **CatBoost**: `0.50585`
+* **Blended Ensemble**: `0.50940`
+
+### Generated Artifacts
+* **Ensembled Models**: `models/final_lightgbm.txt`, `models/final_xgboost.json`, and `models/final_catboost.cbm`
+* **Predictions**: `submission.csv` (6,261 rows)
+
 

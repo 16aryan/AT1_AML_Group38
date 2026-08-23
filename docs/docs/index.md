@@ -20,7 +20,7 @@ Our best approach uses:
 2. **Stratified Group K-Fold Cross-Validation**: Folds are grouped by player ID (`pid`) to ensure player records do not leak between training and validation.
 3. **Advanced Feature Engineering**: Incorporates per-minute productivity, power conference classification, high school recruiting status, and chronological cumulative progression.
 4. **Three-Model Blend**: Combines LightGBM (40%), XGBoost (30%), and CatBoost (30%).
-5. **Player-level Average Post-Processing**: Computes the average prediction across all college seasons for a player ID to stabilize predictions.
+5. **Last-Season Training**: Trains the models strictly on each player's final college season to capture their peak performance prior to draft eligibility.
 
 ---
 
