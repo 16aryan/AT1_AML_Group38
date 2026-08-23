@@ -48,7 +48,7 @@ To run all unit tests for the data cleaning, basketball features, cumulative sta
 
 ```bash
 # Run unit tests in the package directory
-python -m pytest 36120-26SP-group1-149874-package/tests
+python -m pytest 36120-26SP-group38-26040826-package/tests
 
 # Run verification tests in the project directory
 python -m pytest tests
