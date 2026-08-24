@@ -20,4 +20,4 @@ nba-api
 -e ../36120-26SP-group38-26040826-package
 
 # Alternatively, if installing from TestPyPI, uncomment the line below:
-# --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ nba_prep
+# --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ nba_prep_26040826
