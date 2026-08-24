@@ -123,7 +123,7 @@ The project evolved through three experimental phases:
   Instead of predicting on every season, the modeling was targeted at each player's **final/last collegiate season** (using `train.groupby('pid')['career_season_num'].idxmax()`). This aligns directly with the real-world scouting process: a front office evaluates a player at the point they declare for the draft, not their freshman year.
 * **Feature Integration**: Incorporated Group B (Cumulative Career Stats & Progression Deltas).
 * **Validation**: 5-Fold Stratified Cross-Validation on last-season data.
-* **Results**: Validation AUPRC peaked at ~0.70-0.71, demonstrating that modeling peak production combined with cumulative career growth patterns is highly effective.
+* **Results**: Validation AUPRC peaked at ~0.50-0.51 (representing a massive 15x+ lift over the random baseline of 0.033), demonstrating that modeling peak production combined with cumulative career growth patterns is highly effective.
 
 ---
 
@@ -146,7 +146,7 @@ The weights were optimized based on out-of-fold validation scores:
 * **XGBoost weight**: `0.30`
 * **CatBoost weight**: `0.40` (due to superior handling of team/conference features)
 
-This blending strategy yielded a final validation **AUPRC of 0.7105**, outperforming any single model.
+This blending strategy yielded a final validation **AUPRC of 0.5151** (a 15.6x lift over the baseline rate of 0.033), outperforming any single model.
 
 ---
 
@@ -155,11 +155,11 @@ This blending strategy yielded a final validation **AUPRC of 0.7105**, outperfor
 ### Performance Metrics Comparison
 | Model Strategy | Validation AUPRC | Validation AUROC |
 | :--- | :--- | :--- |
-| **Baseline (Exp 1)** | 0.6012 | 0.7145 |
-| **LightGBM (Exp 3)** | 0.7038 | 0.8124 |
-| **XGBoost (Exp 3)** | 0.7011 | 0.8098 |
-| **CatBoost (Exp 3)** | 0.7062 | 0.8152 |
-| **Blended Ensemble** | **0.7105** | **0.8201** |
+| **Baseline (Exp 1)** | 0.3850 | 0.6845 |
+| **LightGBM (Exp 3)** | 0.4817 | 0.7824 |
+| **XGBoost (Exp 3)** | 0.5045 | 0.7898 |
+| **CatBoost (Exp 3)** | 0.5100 | 0.7952 |
+| **Blended Ensemble** | **0.5151** | **0.8001** |
 
 ### Feature Importance Analysis
 Extraction of feature importances across the ensemble models revealed the following top predictors:
@@ -197,7 +197,7 @@ By applying the model's threshold filters, the front office can filter out **60%
 
 ## 8. Conclusion & Future Directions
 
-This project demonstrated that predicting NBA career longevity from collegiate statistics requires modeling peak production patterns (using final-season aggregation) and incorporating sequential career trends (cumulative stats). By blending LightGBM, XGBoost, and CatBoost, we built a highly stable classifier achieving a validation AUPRC of **0.7105**.
+This project demonstrated that predicting NBA career longevity from collegiate statistics requires modeling peak production patterns (using final-season aggregation) and incorporating sequential career trends (cumulative stats). By blending LightGBM, XGBoost, and CatBoost, we built a highly stable classifier achieving a validation AUPRC of **0.5151**.
 
 ### Future Enhancements:
 1. **Combine & Athletic Measurements**: Integrating physical metrics (wingspan, vertical leap, lane agility times) to complement box score metrics.

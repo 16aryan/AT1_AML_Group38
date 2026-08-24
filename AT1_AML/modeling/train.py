@@ -84,18 +84,21 @@ def train_ensemble():
             
         model_lgb = lgb.LGBMClassifier(
             n_estimators=1500,
-            learning_rate=0.01,
-            num_leaves=31,
-            max_depth=6,
-            subsample=0.8,
-            colsample_bytree=0.8,
+            learning_rate=0.015,
+            num_leaves=15,
+            max_depth=4,
+            subsample=0.7,
+            colsample_bytree=0.7,
+            reg_alpha=2.0,
+            reg_lambda=5.0,
+            min_child_samples=30,
             random_state=42 + fold,
             verbose=-1
         )
         model_lgb.fit(
             X_tr_lgb, y_train,
             eval_set=[(X_v_lgb, y_val)],
-            callbacks=[lgb.early_stopping(stopping_rounds=100, verbose=False)]
+            callbacks=[lgb.early_stopping(stopping_rounds=150, verbose=False)]
         )
         oof_lgb[val_idx] = model_lgb.predict_proba(X_v_lgb)[:, 1]
         test_lgb += model_lgb.predict_proba(X_t_lgb)[:, 1] / kf_last.n_splits
@@ -103,12 +106,15 @@ def train_ensemble():
         # 2. XGBoost
         model_xgb = xgb.XGBClassifier(
             n_estimators=1500,
-            learning_rate=0.01,
-            max_depth=5,
-            subsample=0.8,
-            colsample_bytree=0.8,
+            learning_rate=0.015,
+            max_depth=4,
+            subsample=0.7,
+            colsample_bytree=0.7,
+            reg_alpha=2.0,
+            reg_lambda=5.0,
+            min_child_weight=5,
             random_state=42 + fold,
-            early_stopping_rounds=100
+            early_stopping_rounds=150
         )
         model_xgb.fit(
             X_train, y_train,
@@ -130,10 +136,11 @@ def train_ensemble():
         model_cat = cat.CatBoostClassifier(
             iterations=1500,
             learning_rate=0.02,
-            depth=6,
+            depth=5,
+            l2_leaf_reg=10.0,
             cat_features=categorical_cols,
             random_seed=42 + fold,
-            early_stopping_rounds=100,
+            early_stopping_rounds=150,
             verbose=0
         )
         model_cat.fit(
@@ -147,8 +154,8 @@ def train_ensemble():
     score_xgb = average_precision_score(y_last, oof_xgb)
     score_cat = average_precision_score(y_last, oof_cat)
     
-    oof_blend = 0.4 * oof_lgb + 0.3 * oof_xgb + 0.3 * oof_cat
-    test_blend = 0.4 * test_lgb + 0.3 * test_xgb + 0.3 * test_cat
+    oof_blend = 0.20 * oof_lgb + 0.32 * oof_xgb + 0.48 * oof_cat
+    test_blend = 0.20 * test_lgb + 0.32 * test_xgb + 0.48 * test_cat
     
     logger.info("--------------------------------------")
     logger.success(f"Last-season LGB OOF AUPRC: {score_lgb:.5f}")
@@ -157,11 +164,21 @@ def train_ensemble():
     logger.success(f"Last-season Unique Player AUPRC: {average_precision_score(y_last, oof_blend):.5f}")
     logger.info("--------------------------------------")
     
-    # Create final deduplicated submission file (6,261 rows)
+    # Map predictions to a dictionary: {pid: pred}
+    pid_to_pred = dict(zip(test_last_pids, test_blend))
+    
+    # Load raw test.csv to get the exact original order of pids (12,061 rows)
+    raw_test = pd.read_csv(PROJ_ROOT / "data" / "raw" / "test.csv")
+    
+    # Map each pid in raw_test to its prediction
+    raw_test_preds = raw_test["pid"].map(pid_to_pred)
+    raw_test_preds = raw_test_preds.fillna(0.033)
+    
+    # Create final submission matching original test.csv row count and order
     submission_path = PROJ_ROOT / "submission.csv"
     submission = pd.DataFrame({
-        "pid": test_last_pids,
-        "label": test_blend
+        "pid": raw_test["pid"],
+        "label": raw_test_preds
     })
     
     submission.to_csv(submission_path, index=False)
@@ -178,14 +195,32 @@ def train_ensemble():
     for col in categorical_cols:
         X_last_lgb[col] = X_last_lgb[col].astype("category")
     final_lgb_last = lgb.LGBMClassifier(
-        n_estimators=1000, learning_rate=0.01, num_leaves=31, max_depth=6, subsample=0.8, colsample_bytree=0.8, random_state=42, verbose=-1
+        n_estimators=1000,
+        learning_rate=0.015,
+        num_leaves=15,
+        max_depth=4,
+        subsample=0.7,
+        colsample_bytree=0.7,
+        reg_alpha=2.0,
+        reg_lambda=5.0,
+        min_child_samples=30,
+        random_state=42,
+        verbose=-1
     )
     final_lgb_last.fit(X_last_lgb, y_last)
     final_lgb_last.booster_.save_model(str(MODELS_DIR / "final_lightgbm.txt"))
     
     # XGBoost
     final_xgb_last = xgb.XGBClassifier(
-        n_estimators=1000, learning_rate=0.01, max_depth=5, subsample=0.8, colsample_bytree=0.8, random_state=42
+        n_estimators=1000,
+        learning_rate=0.015,
+        max_depth=4,
+        subsample=0.7,
+        colsample_bytree=0.7,
+        reg_alpha=2.0,
+        reg_lambda=5.0,
+        min_child_weight=5,
+        random_state=42
     )
     final_xgb_last.fit(X_last, y_last)
     final_xgb_last.get_booster().save_model(str(MODELS_DIR / "final_xgboost.json"))
@@ -195,7 +230,13 @@ def train_ensemble():
     for col in categorical_cols:
         X_last_cat[col] = X_last_cat[col].astype(str)
     final_cat_last = cat.CatBoostClassifier(
-        iterations=1000, learning_rate=0.02, depth=6, cat_features=categorical_cols, random_seed=42, verbose=0
+        iterations=1000,
+        learning_rate=0.02,
+        depth=5,
+        l2_leaf_reg=10.0,
+        cat_features=categorical_cols,
+        random_seed=42,
+        verbose=0
     )
     final_cat_last.fit(X_last_cat, y_last)
     final_cat_last.save_model(str(MODELS_DIR / "final_catboost.cbm"), format="cbm")

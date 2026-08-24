@@ -104,13 +104,13 @@ My interactive end-to-end walkthrough notebook is available at `notebooks/36120-
 This training run was performed by **Aryan Goel (26040826)**.
 
 ### Performance Scores (OOF AUPRC)
-* **LightGBM**: `0.48638`
-* **XGBoost**: `0.49955`
-* **CatBoost**: `0.50585`
-* **Blended Ensemble**: `0.50940`
+* **LightGBM**: `0.48165`
+* **XGBoost**: `0.50446`
+* **CatBoost**: `0.51004`
+* **Blended Ensemble**: `0.51508`
 
 ### Generated Artifacts
 * **Ensembled Models**: `models/final_lightgbm.txt`, `models/final_xgboost.json`, and `models/final_catboost.cbm`
-* **Predictions**: `submission.csv` (6,261 rows)
+* **Predictions**: `submission.csv` (12,061 rows, fully aligned to raw test.csv)
 
 
