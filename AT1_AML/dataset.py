@@ -80,6 +80,13 @@ def engineer_features(df: pd.DataFrame) -> pd.DataFrame:
     adv_feats = calculate_advanced_recruit_and_conference_features(processed)
     processed = pd.concat([processed, adv_feats], axis=1)
     
+    # Compute interaction features
+    logger.info("Computing advanced interaction features...")
+    processed["bpm_age_interaction"] = processed["bpm"] * (25.0 - processed["age"])
+    processed["conf_bpm_interaction"] = processed["bpm"] * processed["is_major_conf"]
+    processed["usage_bpm_interaction"] = processed["usg"] * processed["bpm"]
+    processed["scouting_score"] = (151.0 - processed["rec_rank_filled"]) * processed["max_bpm_to_date"]
+    
     return processed
 
 @app.command()

@@ -84,14 +84,13 @@ def train_ensemble():
             
         model_lgb = lgb.LGBMClassifier(
             n_estimators=1500,
-            learning_rate=0.015,
-            num_leaves=15,
-            max_depth=4,
+            learning_rate=0.02,
+            num_leaves=31,
+            max_depth=5,
             subsample=0.7,
             colsample_bytree=0.7,
-            reg_alpha=2.0,
-            reg_lambda=5.0,
-            min_child_samples=30,
+            reg_alpha=0.5,
+            reg_lambda=1.0,
             random_state=42 + fold,
             verbose=-1
         )
@@ -106,13 +105,12 @@ def train_ensemble():
         # 2. XGBoost
         model_xgb = xgb.XGBClassifier(
             n_estimators=1500,
-            learning_rate=0.015,
-            max_depth=4,
+            learning_rate=0.01,
+            max_depth=3,
             subsample=0.7,
             colsample_bytree=0.7,
-            reg_alpha=2.0,
-            reg_lambda=5.0,
-            min_child_weight=5,
+            reg_alpha=0.5,
+            reg_lambda=1.0,
             random_state=42 + fold,
             early_stopping_rounds=150
         )
@@ -154,8 +152,8 @@ def train_ensemble():
     score_xgb = average_precision_score(y_last, oof_xgb)
     score_cat = average_precision_score(y_last, oof_cat)
     
-    oof_blend = 0.20 * oof_lgb + 0.32 * oof_xgb + 0.48 * oof_cat
-    test_blend = 0.20 * test_lgb + 0.32 * test_xgb + 0.48 * test_cat
+    oof_blend = 0.10 * oof_lgb + 0.36 * oof_xgb + 0.54 * oof_cat
+    test_blend = 0.10 * test_lgb + 0.36 * test_xgb + 0.54 * test_cat
     
     logger.info("--------------------------------------")
     logger.success(f"Last-season LGB OOF AUPRC: {score_lgb:.5f}")
@@ -196,14 +194,13 @@ def train_ensemble():
         X_last_lgb[col] = X_last_lgb[col].astype("category")
     final_lgb_last = lgb.LGBMClassifier(
         n_estimators=1000,
-        learning_rate=0.015,
-        num_leaves=15,
-        max_depth=4,
+        learning_rate=0.02,
+        num_leaves=31,
+        max_depth=5,
         subsample=0.7,
         colsample_bytree=0.7,
-        reg_alpha=2.0,
-        reg_lambda=5.0,
-        min_child_samples=30,
+        reg_alpha=0.5,
+        reg_lambda=1.0,
         random_state=42,
         verbose=-1
     )
@@ -213,13 +210,12 @@ def train_ensemble():
     # XGBoost
     final_xgb_last = xgb.XGBClassifier(
         n_estimators=1000,
-        learning_rate=0.015,
-        max_depth=4,
+        learning_rate=0.01,
+        max_depth=3,
         subsample=0.7,
         colsample_bytree=0.7,
-        reg_alpha=2.0,
-        reg_lambda=5.0,
-        min_child_weight=5,
+        reg_alpha=0.5,
+        reg_lambda=1.0,
         random_state=42
     )
     final_xgb_last.fit(X_last, y_last)
