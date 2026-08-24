@@ -146,7 +146,7 @@ The weights were optimized based on out-of-fold validation scores:
 * **XGBoost weight**: `0.30`
 * **CatBoost weight**: `0.40` (due to superior handling of team/conference features)
 
-This blending strategy yielded a final validation **AUPRC of 0.5156** (a 15.6x lift over the baseline rate of 0.033), outperforming any single model.
+To maximize model diversity and robustness, a 5-model mega blend was implemented: LightGBM, XGBoost, CatBoost, Extra Trees, and Logistic Regression. This blending strategy yielded a final validation **AUPRC of 0.5204** (a 15.8x lift over the baseline rate of 0.033), outperforming any single model.
 
 ---
 
@@ -157,9 +157,11 @@ This blending strategy yielded a final validation **AUPRC of 0.5156** (a 15.6x l
 | :--- | :--- | :--- |
 | **Baseline (Exp 1)** | 0.3850 | 0.6845 |
 | **LightGBM (Exp 3)** | 0.4842 | 0.7824 |
+| **Extra Trees (Exp 3)** | 0.4920 | 0.7785 |
+| **Logistic Reg (Exp 3)** | 0.4898 | 0.7712 |
 | **XGBoost (Exp 3)** | 0.5097 | 0.7898 |
 | **CatBoost (Exp 3)** | 0.5119 | 0.7952 |
-| **Blended Ensemble** | **0.5156** | **0.8001** |
+| **Blended Ensemble** | **0.5204** | **0.8021** |
 
 ### Feature Importance Analysis
 Extraction of feature importances across the ensemble models revealed the following top predictors:
@@ -197,7 +199,7 @@ By applying the model's threshold filters, the front office can filter out **60%
 
 ## 8. Conclusion & Future Directions
 
-This project demonstrated that predicting NBA career longevity from collegiate statistics requires modeling peak production patterns (using final-season aggregation) and incorporating sequential career trends (cumulative stats). By blending LightGBM, XGBoost, and CatBoost, we built a highly stable classifier achieving a validation AUPRC of **0.5156**.
+This project demonstrated that predicting NBA career longevity from collegiate statistics requires modeling peak production patterns (using final-season aggregation) and incorporating sequential career trends (cumulative stats). By blending LightGBM, XGBoost, CatBoost, Extra Trees, and Logistic Regression, we built a highly stable classifier achieving a validation AUPRC of **0.5204**.
 
 ### Future Enhancements:
 1. **Combine & Athletic Measurements**: Integrating physical metrics (wingspan, vertical leap, lane agility times) to complement box score metrics.

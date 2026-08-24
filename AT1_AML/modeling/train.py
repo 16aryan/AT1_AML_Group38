@@ -6,6 +6,11 @@ import numpy as np
 import pandas as pd
 from sklearn.metrics import average_precision_score
 from sklearn.model_selection import StratifiedKFold
+from sklearn.ensemble import ExtraTreesClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import StandardScaler
+from sklearn.impute import SimpleImputer
+from sklearn.pipeline import Pipeline
 import xgboost as xgb
 
 from AT1_AML.config import MODELS_DIR, PROCESSED_DATA_DIR, PROJ_ROOT
@@ -66,10 +71,14 @@ def train_ensemble():
     oof_lgb = np.zeros(len(train_last))
     oof_xgb = np.zeros(len(train_last))
     oof_cat = np.zeros(len(train_last))
+    oof_et = np.zeros(len(train_last))
+    oof_lr = np.zeros(len(train_last))
     
     test_lgb = np.zeros(len(X_test_last))
     test_xgb = np.zeros(len(X_test_last))
     test_cat = np.zeros(len(X_test_last))
+    test_et = np.zeros(len(X_test_last))
+    test_lr = np.zeros(len(X_test_last))
     
     for fold, (train_idx, val_idx) in enumerate(kf_last.split(X_last, y_last)):
         X_train, y_train = X_last.iloc[train_idx], y_last.iloc[train_idx]
@@ -149,36 +158,49 @@ def train_ensemble():
         )
         oof_cat[val_idx] = model_cat.predict_proba(X_val_cat)[:, 1]
         test_cat += model_cat.predict_proba(X_test_cat)[:, 1] / kf_last.n_splits
+        
+        # 4. Extra Trees
+        pipe_et = Pipeline([
+            ('imputer', SimpleImputer(strategy='median')),
+            ('et', ExtraTreesClassifier(n_estimators=500, max_depth=8, random_state=42 + fold, n_jobs=-1))
+        ])
+        pipe_et.fit(X_train, y_train)
+        oof_et[val_idx] = pipe_et.predict_proba(X_val)[:, 1]
+        test_et += pipe_et.predict_proba(X_test_last)[:, 1] / kf_last.n_splits
+        
+        # 5. Logistic Regression
+        pipe_lr = Pipeline([
+            ('imputer', SimpleImputer(strategy='median')),
+            ('scaler', StandardScaler()),
+            ('lr', LogisticRegression(C=0.05, max_iter=1000, random_state=42 + fold))
+        ])
+        pipe_lr.fit(X_train, y_train)
+        oof_lr[val_idx] = pipe_lr.predict_proba(X_val)[:, 1]
+        test_lr += pipe_lr.predict_proba(X_test_last)[:, 1] / kf_last.n_splits
 
     score_lgb = average_precision_score(y_last, oof_lgb)
     score_xgb = average_precision_score(y_last, oof_xgb)
     score_cat = average_precision_score(y_last, oof_cat)
+    score_et = average_precision_score(y_last, oof_et)
+    score_lr = average_precision_score(y_last, oof_lr)
     
-    oof_blend = 0.10 * oof_lgb + 0.36 * oof_xgb + 0.54 * oof_cat
-    test_blend = 0.10 * test_lgb + 0.36 * test_xgb + 0.54 * test_cat
+    oof_blend = 0.178 * oof_lgb + 0.049 * oof_xgb + 0.352 * oof_cat + 0.010 * oof_et + 0.411 * oof_lr
+    test_blend = 0.178 * test_lgb + 0.049 * test_xgb + 0.352 * test_cat + 0.010 * test_et + 0.411 * test_lr
     
     logger.info("--------------------------------------")
     logger.success(f"Last-season LGB OOF AUPRC: {score_lgb:.5f}")
     logger.success(f"Last-season XGB OOF AUPRC: {score_xgb:.5f}")
     logger.success(f"Last-season CAT OOF AUPRC: {score_cat:.5f}")
+    logger.success(f"Last-season ET OOF AUPRC: {score_et:.5f}")
+    logger.success(f"Last-season LR OOF AUPRC: {score_lr:.5f}")
     logger.success(f"Last-season Unique Player AUPRC: {average_precision_score(y_last, oof_blend):.5f}")
     logger.info("--------------------------------------")
     
-    # Map predictions to a dictionary: {pid: pred}
-    pid_to_pred = dict(zip(test_last_pids, test_blend))
-    
-    # Load raw test.csv to get the exact original order of pids (12,061 rows)
-    raw_test = pd.read_csv(PROJ_ROOT / "data" / "raw" / "test.csv")
-    
-    # Map each pid in raw_test to its prediction
-    raw_test_preds = raw_test["pid"].map(pid_to_pred)
-    raw_test_preds = raw_test_preds.fillna(0.033)
-    
-    # Create final submission matching original test.csv row count and order
+    # Create final unique player submission file (6,261 rows) with no duplicates
     submission_path = PROJ_ROOT / "submission.csv"
     submission = pd.DataFrame({
-        "pid": raw_test["pid"],
-        "label": raw_test_preds
+        "pid": test_last_pids,
+        "label": test_blend
     })
     
     submission.to_csv(submission_path, index=False)

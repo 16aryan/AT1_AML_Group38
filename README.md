@@ -105,12 +105,14 @@ This training run was performed by **Aryan Goel (26040826)**.
 
 ### Performance Scores (OOF AUPRC)
 * **LightGBM**: `0.48416`
+* **Extra Trees**: `0.49197`
+* **Logistic Regression**: `0.48983`
 * **XGBoost**: `0.50970`
 * **CatBoost**: `0.51188`
-* **Blended Ensemble**: `0.51557`
+* **Blended Ensemble**: `0.52035`
 
 ### Generated Artifacts
 * **Ensembled Models**: `models/final_lightgbm.txt`, `models/final_xgboost.json`, and `models/final_catboost.cbm`
-* **Predictions**: `submission.csv` (12,061 rows, fully aligned to raw test.csv)
+* **Predictions**: `submission.csv` (6,261 rows, deduplicated unique player IDs)
 
 
