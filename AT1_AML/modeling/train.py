@@ -1,13 +1,15 @@
-import pandas as pd
-import numpy as np
-import lightgbm as lgb
-import xgboost as xgb
+
 import catboost as cat
-from sklearn.model_selection import StratifiedKFold
-from sklearn.metrics import average_precision_score
-from pathlib import Path
+import lightgbm as lgb
 from loguru import logger
-from AT1_AML.config import PROCESSED_DATA_DIR, MODELS_DIR, PROJ_ROOT
+import numpy as np
+import pandas as pd
+from sklearn.metrics import average_precision_score
+from sklearn.model_selection import StratifiedKFold
+import xgboost as xgb
+
+from AT1_AML.config import MODELS_DIR, PROCESSED_DATA_DIR, PROJ_ROOT
+
 
 def train_ensemble():
     logger.info("Loading processed datasets...")
@@ -29,7 +31,7 @@ def train_ensemble():
     
     X = train[feature_cols].copy()
     y = train["label"].copy()
-    groups = train["pid"].copy()
+    train["pid"].copy()
     X_test = test[feature_cols].copy()
     
     # Configure categorical features robustly across all models
