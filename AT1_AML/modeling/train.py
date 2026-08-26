@@ -12,6 +12,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.impute import SimpleImputer
 from sklearn.pipeline import Pipeline
 import xgboost as xgb
+import joblib
 
 from AT1_AML.config import MODELS_DIR, PROCESSED_DATA_DIR, PROJ_ROOT
 
@@ -230,6 +231,7 @@ def train_ensemble():
     )
     final_lgb_last.fit(X_last_lgb, y_last)
     final_lgb_last.booster_.save_model(str(MODELS_DIR / "final_lightgbm.txt"))
+    joblib.dump(final_lgb_last, str(MODELS_DIR / "final_lightgbm.joblib"))
     
     # XGBoost
     final_xgb_last = xgb.XGBClassifier(
@@ -244,6 +246,7 @@ def train_ensemble():
     )
     final_xgb_last.fit(X_last, y_last)
     final_xgb_last.get_booster().save_model(str(MODELS_DIR / "final_xgboost.json"))
+    joblib.dump(final_xgb_last, str(MODELS_DIR / "final_xgboost.joblib"))
     
     # CatBoost
     X_last_cat = X_last.copy()
@@ -260,6 +263,7 @@ def train_ensemble():
     )
     final_cat_last.fit(X_last_cat, y_last)
     final_cat_last.save_model(str(MODELS_DIR / "final_catboost.cbm"), format="cbm")
+    joblib.dump(final_cat_last, str(MODELS_DIR / "final_catboost.joblib"))
     
     logger.success("All final models successfully trained and saved!")
     logger.info("--------------------------------------")
