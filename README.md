@@ -96,23 +96,29 @@ This will:
 - Output overall AUPRC scores (target metric) for each individual model and the blended ensemble.
 - Save the predicted probabilities on each player's final college season to `submission.csv` (deduplicated by `pid` and ready for Kaggle upload).
 
-### 4. Interactive Analysis
-My interactive end-to-end walkthrough notebook is available at `notebooks/36120-26SP-group38-26040826-AT1-experiment-1.ipynb`.
+### 4. Interactive Analysis Notebooks
+The complete series of experimental notebooks conducted for this assessment:
+* **Experiment 1 (Baseline):** [`notebooks/36120-26SP-group38-26040826-AT1-experiment-1.ipynb`](notebooks/36120-26SP-group38-26040826-AT1-experiment-1.ipynb) — Initial baseline LightGBM model and data cleaning exploration.
+* **Experiment 2 (Model Exploration):** [`notebooks/36120-26SP-group38-26040826-AT1-experiment-2.ipynb`](notebooks/36120-26SP-group38-26040826-AT1-experiment-2.ipynb) — Systematic architecture comparison between Random Forest, HistGradientBoosting, and Tuned LightGBM.
+* **Experiment 3 (Feature Selection & Ensembling):** [`notebooks/36120-26SP-group38-26040826-AT1-experiment-3.ipynb`](notebooks/36120-26SP-group38-26040826-AT1-experiment-3.ipynb) — Multi-model GBDT ensemble (LightGBM, XGBoost, CatBoost) trained on peak final-college seasons with correlation and gain-based feature selection.
 
 ## Latest Model Performance & Credit
 
-This training run was performed by **Aryan Goel (26040826)**.
+This training run and model architecture was developed by **Aryan Goel (26040826)**.
 
-### Performance Scores (OOF AUPRC)
+### Out-of-Fold (OOF) Performance Scores (AUPRC)
 * **LightGBM**: `0.48416`
 * **Extra Trees**: `0.49197`
 * **Logistic Regression**: `0.48983`
 * **XGBoost**: `0.50970`
 * **CatBoost**: `0.51188`
-* **Blended Ensemble**: `0.52035`
+* **Blended Ensemble**: **`0.52035`** *(Peak Performance)*
 
-### Generated Artifacts
-* **Ensembled Models**: `models/final_lightgbm.txt`, `models/final_xgboost.json`, and `models/final_catboost.cbm`
-* **Predictions**: `submission.csv` (6,261 rows, deduplicated unique player IDs)
+### Generated Model Artifacts (`models/`)
+* **LightGBM**: `models/final_lightgbm.joblib`, `models/final_lightgbm.txt`, `models/36120-26SP-group38-26040826-final_lightgbm.joblib`
+* **XGBoost**: `models/final_xgboost.joblib`, `models/final_xgboost.json`, `models/36120-26SP-group38-26040826-final_xgboost.joblib`
+* **CatBoost**: `models/final_catboost.joblib`, `models/final_catboost.cbm`, `models/36120-26SP-group38-26040826-final_catboost.joblib`
+* **Experiment 3 Final Model**: `models/36120-26SP-group38-26040826-experiment3-model.joblib`
+* **Predictions**: `submission.csv` (6,261 unique player rows, 0 duplicates, 0 nulls, ready for Kaggle submission)
 
 
