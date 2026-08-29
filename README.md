@@ -72,35 +72,54 @@ The machine learning models (LightGBM, XGBoost, and CatBoost) are trained using 
 
 ## Reproducibility Instructions
 
-### 1. Install dependencies and local package
-To set up the project environment and install the required libraries:
+### 1. Install Environment & Package Dependencies
+To set up the project environment and install all required machine learning libraries alongside the custom `nba_prep` feature engineering package:
 ```bash
 pip install -r requirements.txt
 ```
-This will automatically install my custom `nba_prep` feature engineering package in editable mode.
+*(Alternatively, install `nba_prep` directly from TestPyPI: `pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ nba_prep_26040826==0.3.2`)*
 
-### 2. Preprocess Data and Engineer Features
-Run the dataset pipeline to clean the raw data (height, year, age) and generate the advanced basketball features:
+### 2. Preprocess Raw Data & Generate Processed CSVs
+To generate all fresh, cleaned, and feature-engineered datasets from raw inputs:
 ```bash
 python -m AT1_AML.dataset
 ```
-This will save the processed training and test features to `data/processed/train_processed.csv` and `data/processed/test_processed.csv`.
+**Output Files Generated in `data/processed/`:**
+* `train_processed.csv`: Cleaned multi-season training data with 110+ engineered features (cumulative statistics, True Shooting %, defensive impact, age, and recruit pedigree).
+* `test_processed.csv`: Cleaned test set with aligned feature columns and zero missing feature values.
+* `interim/` datasets: Intermediate cleaned and imputed tables.
 
-### 3. Train Model and Generate Predictions
-Run the cross-validated model training script:
+### 3. Train Models, Output Metrics & Generate Predictions
+Run the complete automated 5-Fold Stratified Group Cross-Validation and model training pipeline:
 ```bash
 python -m AT1_AML.modeling.train
 ```
-This will:
-- Execute a 5-Fold Stratified Group Cross-Validation (grouped by `pid` to prevent player-level leakage) using an ensemble of **LightGBM**, **XGBoost**, and **CatBoost**.
-- Output overall AUPRC scores (target metric) for each individual model and the blended ensemble.
-- Save the predicted probabilities on each player's final college season to `submission.csv` (deduplicated by `pid` and ready for Kaggle upload).
+**What this accomplishes:**
+1. **Cross-Validation Evaluation:** Evaluates 5 separate algorithms (LightGBM, XGBoost, CatBoost, Extra Trees, Logistic Regression) and their ensemble using Stratified Group K-Fold (grouped strictly by `pid` to eliminate data leakage).
+2. **Generates Fresh Model Files in `models/`:** Fits final estimators on full peak-season data and saves serialized model weights:
+   * **LightGBM:** `models/final_lightgbm.joblib`, `models/final_lightgbm.txt`, `models/36120-26SP-group38-26040826-final_lightgbm.joblib`
+   * **XGBoost:** `models/final_xgboost.joblib`, `models/final_xgboost.json`, `models/36120-26SP-group38-26040826-final_xgboost.joblib`
+   * **CatBoost:** `models/final_catboost.joblib`, `models/final_catboost.cbm`, `models/36120-26SP-group38-26040826-final_catboost.joblib`
+   * **Final Ensemble Model:** `models/36120-26SP-group38-26040826-experiment3-model.joblib`
+3. **Generates Deduplicated Kaggle Submission (`submission.csv`):** Evaluates test prospects strictly on their final college seasons, ensuring exactly 6,261 unique player IDs with zero duplicates and zero null values.
 
-### 4. Interactive Analysis Notebooks
-The complete series of experimental notebooks conducted for this assessment:
-* **Experiment 1 (Baseline):** [`notebooks/36120-26SP-group38-26040826-AT1-experiment-1.ipynb`](notebooks/36120-26SP-group38-26040826-AT1-experiment-1.ipynb) — Initial baseline LightGBM model and data cleaning exploration.
-* **Experiment 2 (Model Exploration):** [`notebooks/36120-26SP-group38-26040826-AT1-experiment-2.ipynb`](notebooks/36120-26SP-group38-26040826-AT1-experiment-2.ipynb) — Systematic architecture comparison between Random Forest, HistGradientBoosting, and Tuned LightGBM.
-* **Experiment 3 (Feature Selection & Ensembling):** [`notebooks/36120-26SP-group38-26040826-AT1-experiment-3.ipynb`](notebooks/36120-26SP-group38-26040826-AT1-experiment-3.ipynb) — Multi-model GBDT ensemble (LightGBM, XGBoost, CatBoost) trained on peak final-college seasons with correlation and gain-based feature selection.
+### 4. Running Experimental Walkthrough Notebooks
+The complete, structured experimental progression is documented across three dedicated Jupyter notebooks:
+
+* **Experiment 1 (Baseline Model):** [`notebooks/36120-26SP-group38-26040826-AT1-experiment-1.ipynb`](notebooks/36120-26SP-group38-26040826-AT1-experiment-1.ipynb)
+  * Implements baseline LightGBM model, initial data exploratory checks, and saves `models/36120-26SP-group38-26040826-experiment1-model.joblib`.
+* **Experiment 2 (Model Architecture Exploration):** [`notebooks/36120-26SP-group38-26040826-AT1-experiment-2.ipynb`](notebooks/36120-26SP-group38-26040826-AT1-experiment-2.ipynb)
+  * Rigorous head-to-head comparison of Random Forest, HistGradientBoosting, and Tuned LightGBM. Saves `models/36120-26SP-group38-26040826-experiment2-model.joblib`.
+* **Experiment 3 (Feature Selection & Ensembling):** [`notebooks/36120-26SP-group38-26040826-AT1-experiment-3.ipynb`](notebooks/36120-26SP-group38-26040826-AT1-experiment-3.ipynb)
+  * Comprehensive feature engineering, correlation analysis, LightGBM gain-importance feature selection, and a 3-model GBDT ensemble. Generates processed split files (`X_train.csv`, `y_train.csv`, `X_val.csv`, `y_val.csv`, `X_test.csv`, `y_test.csv`), saves `models/36120-26SP-group38-26040826-experiment3-model.joblib`, and outputs the final blended `submission.csv`.
+
+#### To re-execute all notebooks via CLI:
+```bash
+jupyter nbconvert --to notebook --execute --inplace notebooks/36120-26SP-group38-26040826-AT1-experiment-1.ipynb
+jupyter nbconvert --to notebook --execute --inplace notebooks/36120-26SP-group38-26040826-AT1-experiment-2.ipynb
+jupyter nbconvert --to notebook --execute --inplace notebooks/36120-26SP-group38-26040826-AT1-experiment-3.ipynb
+```
+*(Or launch interactively using `jupyter lab` or `jupyter notebook`).*
 
 ## Latest Model Performance & Credit
 
