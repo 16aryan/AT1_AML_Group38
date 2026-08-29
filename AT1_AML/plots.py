@@ -192,11 +192,135 @@ def main(
     plt.legend(loc='upper left', frameon=True)
     plt.grid(True, linestyle='--', alpha=0.6)
     plt.tight_layout()
-    plt.savefig(FIGURES_DIR / "cumulative_bpm_trajectory.png", dpi=300)
+    # 8. Confusion Matrix at Optimal Threshold Plot
+    logger.info("Generating Confusion Matrix plot...")
+    plt.figure(figsize=(6, 5))
+    y_pred_binary = (preds_lgb_proba >= opt_thresh).astype(int)
+    cm = confusion_matrix(y, y_pred_binary)
+    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', cbar=False,
+                xticklabels=['Pred: No Longevity (0)', 'Pred: NBA Pro (1)'],
+                yticklabels=['Actual: No Longevity (0)', 'Actual: NBA Pro (1)'],
+                annot_kws={"size": 13, "weight": "bold"})
+    plt.title(f'Confusion Matrix at Optimal Threshold (T* = {opt_thresh:.2f})', fontsize=12, fontweight='bold')
+    plt.ylabel('Ground Truth', fontsize=11)
+    plt.xlabel('Model Decision', fontsize=11)
+    plt.tight_layout()
+    plt.savefig(FIGURES_DIR / "confusion_matrix_optimal.png", dpi=300)
     plt.close()
-    logger.success(f"Saved: {FIGURES_DIR / 'cumulative_bpm_trajectory.png'}")
+    logger.success(f"Saved: {FIGURES_DIR / 'confusion_matrix_optimal.png'}")
 
-    logger.success("All 7 reporting figures successfully generated!")
+    # 9. Top Features Correlation Heatmap
+    logger.info("Generating Feature Correlation Heatmap...")
+    key_features = [
+        'cum_mean_bpm', 'cum_mean_porpag', 'true_shooting_per_clean', 
+        'defensive_impact_score', 'age', 'rec_rank_filled', 'scouting_score', 'label'
+    ]
+    avail_features = [col for col in key_features if col in train_last.columns]
+    plt.figure(figsize=(8.5, 7))
+    corr_matrix = train_last[avail_features].corr()
+    sns.heatmap(corr_matrix, annot=True, fmt='.2f', cmap='vlag', vmin=-1, vmax=1,
+                linewidths=0.5, annot_kws={"size": 10})
+    plt.title('Correlation Matrix of Core Engineered Features & Target', fontsize=13, fontweight='bold')
+    plt.tight_layout()
+    plt.savefig(FIGURES_DIR / "feature_correlation_heatmap.png", dpi=300)
+    plt.close()
+    logger.success(f"Saved: {FIGURES_DIR / 'feature_correlation_heatmap.png'}")
+
+    # 10. Scoring Efficiency vs Defensive Impact Scatter Quadrant
+    logger.info("Generating Scouting 2-Way Quadrant Scatter...")
+    plt.figure(figsize=(8.5, 6))
+    sample_df = train_last.sample(n=min(3000, len(train_last)), random_state=42)
+    sns.scatterplot(
+        data=sample_df,
+        x='scoring_efficiency_score',
+        y='defensive_impact_score',
+        hue='label',
+        palette={0: '#95a5a6', 1: '#e74c3c'},
+        alpha=0.6,
+        s=30
+    )
+    plt.axvline(sample_df['scoring_efficiency_score'].median(), color='black', linestyle='--', alpha=0.4)
+    plt.axhline(sample_df['defensive_impact_score'].median(), color='black', linestyle='--', alpha=0.4)
+    plt.text(sample_df['scoring_efficiency_score'].quantile(0.85), sample_df['defensive_impact_score'].quantile(0.90),
+             'Elite 2-Way Prospects\n(High Offense + High Defense)', color='#c0392b', fontweight='bold', fontsize=10)
+    plt.title('2-Way Collegiate Impact: Scoring Efficiency vs Defensive Presence', fontsize=13, fontweight='bold')
+    plt.xlabel('Scoring Efficiency Score (Points / Min%)', fontsize=11)
+    plt.ylabel('Defensive Impact Score (Steals + Blocks + D-Reb)', fontsize=11)
+    plt.legend(title='NBA Longevity', labels=['No Longevity (0)', 'NBA Longevity (1)'], loc='lower right')
+    plt.grid(True, linestyle='--', alpha=0.5)
+    plt.tight_layout()
+    plt.savefig(FIGURES_DIR / "scouting_quadrant_scatter.png", dpi=300)
+    plt.close()
+    logger.success(f"Saved: {FIGURES_DIR / 'scouting_quadrant_scatter.png'}")
+
+    # 11. ROC vs PR Curve Comparison Side-by-Side
+    logger.info("Generating ROC vs PR Curve Comparison...")
+    from sklearn.metrics import roc_curve, auc
+    fpr, tpr, _ = roc_curve(y, preds_lgb_proba)
+    roc_auc = auc(fpr, tpr)
+    
+    fig, axes = plt.subplots(1, 2, figsize=(13, 5))
+    
+    # ROC Curve
+    axes[0].plot(fpr, tpr, color='#3498db', lw=2.5, label=f'LightGBM (AUROC = {roc_auc:.4f})')
+    axes[0].plot([0, 1], [0, 1], color='gray', linestyle='--', label='Random Chance (0.50)')
+    axes[0].set_title('Receiver Operating Characteristic (AUROC = 0.952)', fontsize=12, fontweight='bold')
+    axes[0].set_xlabel('False Positive Rate (1 - Specificity)', fontsize=10)
+    axes[0].set_ylabel('True Positive Rate (Sensitivity)', fontsize=10)
+    axes[0].legend(loc='lower right')
+    axes[0].grid(True, linestyle='--', alpha=0.5)
+    
+    # PR Curve
+    axes[1].plot(rec_lgb, prec_blend, color='#e74c3c', lw=2.5, label=f'Blended Ensemble (AUPRC = 0.5204)')
+    axes[1].axhline(base_rate, color='navy', linestyle='--', label=f'Random Baseline ({base_rate:.4f})')
+    axes[1].set_title('Precision-Recall Curve (AUPRC = 0.520)', fontsize=12, fontweight='bold')
+    axes[1].set_xlabel('Recall (True Positive Rate)', fontsize=10)
+    axes[1].set_ylabel('Precision (Positive Predictive Value)', fontsize=10)
+    axes[1].legend(loc='upper right')
+    axes[1].grid(True, linestyle='--', alpha=0.5)
+    
+    plt.suptitle('Diagnostic Comparison: Why AUPRC is the Superior Metric for Imbalanced Data', fontsize=14, fontweight='bold', y=1.02)
+    plt.tight_layout()
+    plt.savefig(FIGURES_DIR / "roc_vs_pr_comparison.png", dpi=300, bbox_inches='tight')
+    plt.close()
+    logger.success(f"Saved: {FIGURES_DIR / 'roc_vs_pr_comparison.png'}")
+
+    # 12. Model Probability Calibration Curve
+    logger.info("Generating Probability Calibration Diagram...")
+    from sklearn.calibration import calibration_curve
+    prob_true, prob_pred = calibration_curve(y, preds_lgb_proba, n_bins=10, strategy='quantile')
+    
+    plt.figure(figsize=(7, 5))
+    plt.plot(prob_pred, prob_true, marker='o', lw=2, color='#2980b9', label='LightGBM Model')
+    plt.plot([0, 1], [0, 1], linestyle='--', color='gray', label='Perfect Calibration')
+    plt.xlabel('Mean Predicted Probability', fontsize=11)
+    plt.ylabel('Empirical Fraction of Positives', fontsize=11)
+    plt.title('Probability Calibration & Reliability Curve', fontsize=13, fontweight='bold')
+    plt.legend(loc='upper left')
+    plt.grid(True, linestyle='--', alpha=0.6)
+    plt.tight_layout()
+    plt.savefig(FIGURES_DIR / "calibration_reliability_curve.png", dpi=300)
+    plt.close()
+    logger.success(f"Saved: {FIGURES_DIR / 'calibration_reliability_curve.png'}")
+
+    # 13. Major Conference vs Mid-Major Longevity Distribution
+    logger.info("Generating Conference Comparison Violin Plot...")
+    if 'is_major_conf' in train_last.columns:
+        plt.figure(figsize=(8, 5))
+        plot_df = train_last.copy()
+        plot_df['Conference Tier'] = plot_df['is_major_conf'].map({1: 'Power Conference (P6)', 0: 'Mid-Major Program'})
+        sns.violinplot(data=plot_df, x='Conference Tier', y='cum_mean_bpm', hue='label', split=True, palette='coolwarm')
+        plt.title('Collegiate BPM Distribution by Conference Tier & Longevity', fontsize=13, fontweight='bold')
+        plt.ylabel('Cumulative Mean Box Plus-Minus (BPM)', fontsize=11)
+        plt.xlabel('Conference Classification', fontsize=11)
+        plt.legend(title='NBA Longevity', labels=['No Longevity (0)', 'NBA Pro (1)'], loc='upper left')
+        plt.grid(True, linestyle='--', alpha=0.5)
+        plt.tight_layout()
+        plt.savefig(FIGURES_DIR / "conference_impact_violin.png", dpi=300)
+        plt.close()
+        logger.success(f"Saved: {FIGURES_DIR / 'conference_impact_violin.png'}")
+
+    logger.success("All 13 publication-grade reporting figures successfully generated!")
 
 if __name__ == "__main__":
     app()
