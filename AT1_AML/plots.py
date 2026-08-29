@@ -317,11 +317,14 @@ def main(
     if 'is_major_conf' in train_last.columns:
         plt.figure(figsize=(8, 5))
         plot_df = train_last.copy()
+        # Filter extreme statistical outlier artifacts to standard basketball BPM range
+        plot_df = plot_df[(plot_df['cum_mean_bpm'] >= -15) & (plot_df['cum_mean_bpm'] <= 20)]
         plot_df['Conference Tier'] = plot_df['is_major_conf'].map({1: 'Power Conference (P6)', 0: 'Mid-Major Program'})
-        sns.violinplot(data=plot_df, x='Conference Tier', y='cum_mean_bpm', hue='label', split=True, palette='coolwarm')
+        sns.violinplot(data=plot_df, x='Conference Tier', y='cum_mean_bpm', hue='label', split=True, palette={0: '#95a5a6', 1: '#e74c3c'}, inner="quartile")
         plt.title('Collegiate BPM Distribution by Conference Tier & Longevity', fontsize=13, fontweight='bold')
         plt.ylabel('Cumulative Mean Box Plus-Minus (BPM)', fontsize=11)
         plt.xlabel('Conference Classification', fontsize=11)
+        plt.ylim(-16, 20)
         plt.legend(title='NBA Longevity', labels=['No Longevity (0)', 'NBA Pro (1)'], loc='upper left')
         plt.grid(True, linestyle='--', alpha=0.5)
         plt.tight_layout()
