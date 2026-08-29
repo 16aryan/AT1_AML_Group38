@@ -47,3 +47,7 @@ extend-select = ["I"]  # Add import sorting
 known-first-party = ["AT1_AML"]
 force-sort-within-sections = true
 
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+

@@ -12,6 +12,6 @@ def test_processed_data_exists():
     train = pd.read_csv(train_path, nrows=5)
     test = pd.read_csv(test_path, nrows=5)
     
-    # Assert expected column counts
-    assert train.shape[1] == 113, f"Expected 113 columns, got {train.shape[1]}"
-    assert test.shape[1] == 112, f"Expected 112 columns, got {test.shape[1]}"
+    # Assert expected column counts (including all engineered interaction and composite metrics)
+    assert train.shape[1] == 117, f"Expected 117 columns, got {train.shape[1]}"
+    assert test.shape[1] == 116, f"Expected 116 columns, got {test.shape[1]}"
