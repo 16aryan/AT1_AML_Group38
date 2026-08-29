@@ -3,7 +3,7 @@
 **Author:** Aryan Goel (Student ID: `26040826`)  
 **Project:** Applied Machine Learning (AT1) — Group 38  
 **Repository:** `36120-26SP-group38-26040826-experiments`  
-**Helper Library:** `nba_prep` (v0.3.2)  
+**Helper Library:** `nba_prep` (v0.3.3)  
 
 ---
 

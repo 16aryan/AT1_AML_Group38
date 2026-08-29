@@ -77,7 +77,7 @@ To set up the project environment and install all required machine learning libr
 ```bash
 pip install -r requirements.txt
 ```
-*(Alternatively, install `nba_prep` directly from TestPyPI: `pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ nba_prep_26040826==0.3.2`)*
+*(Alternatively, install `nba_prep` directly from TestPyPI: `pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ nba_prep_26040826==0.3.3`)*
 
 ### 2. Preprocess Raw Data & Generate Processed CSVs
 To generate all fresh, cleaned, and feature-engineered datasets from raw inputs:

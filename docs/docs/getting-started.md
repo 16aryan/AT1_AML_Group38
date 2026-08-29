@@ -13,7 +13,7 @@ pip install -r requirements.txt
 
 *(Alternatively, install the published package directly from TestPyPI:)*
 ```bash
-pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ nba_prep_26040826==0.3.2
+pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ nba_prep_26040826==0.3.3
 ```
 
 ---
