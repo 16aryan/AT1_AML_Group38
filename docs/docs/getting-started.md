@@ -1,55 +1,82 @@
-# Getting Started
+# Getting Started Guide
 
-This guide explains how to set up the project on a clean install, run the preprocessing script, train the ensembled models, and run the test suite.
+This guide walks through setting up the environment, running the preprocessing script, training the ensembled models, executing the Jupyter notebooks, and running the automated test suite.
 
 ---
 
-## 1. Project Setup
-Clone the repository and install all dependencies (including the local feature engineering package `nba_prep`) using the unified requirements file:
+## 1. Project Setup & Package Installation
+Clone the repository and install all dependencies (which installs the local feature engineering package `nba_prep` in editable mode):
 
 ```bash
-# Install dependencies and local custom package
 pip install -r requirements.txt
+```
+
+*(Alternatively, install the published package directly from TestPyPI:)*
+```bash
+pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ nba_prep_26040826==0.3.2
 ```
 
 ---
 
-## 2. Running the Data Pipeline
-Run the preprocessing script to clean raw columns and generate the advanced basketball features:
+## 2. Running the Data Preprocessing Pipeline
+Execute the complete data cleaning and feature engineering pipeline:
 
 ```bash
 python -m AT1_AML.dataset
 ```
 
-This command runs in two phases:
-1. **Phase 1 (Data Cleaning)**: Converts heights to inches, cleans college year classifications, estimates ages, and outputs the intermediate data to `data/interim/train_cleaned.csv` and `data/interim/test_cleaned.csv`.
-2. **Phase 2 (Feature Engineering)**: Calculates advanced statistics, cumulative career totals, recruit ranks, and conference checks, then outputs the final files to `data/processed/train_processed.csv` and `data/processed/test_processed.csv`.
+**Pipeline Stages:**
+1. **Phase 1 (Data Cleaning):** Converts height strings to numeric inches, maps college study years to ordinal numbers (1–4), computes chronological player age from `dob`, and saves interim cleaned datasets.
+2. **Phase 2 (Feature Engineering):** Calculates advanced basketball metrics (True Shooting %, Defensive Impact score, Assist-to-Turnover ratio, scoring efficiency), computes cumulative career totals, expanding career maximums, year-over-year progression deltas, and saves the final datasets to `data/processed/train_processed.csv` and `data/processed/test_processed.csv`.
 
 ---
 
-## 3. Training the Models
-Run the training script to run 5-Fold Cross-Validation on the last college season of each player, blend the predictions, and serialize the finalized models:
+## 3. Training Models & Generating Predictions
+Run the 5-Fold Stratified Group Cross-Validation training script:
 
 ```bash
 python -m AT1_AML.modeling.train
 ```
 
-This command will:
-1. Load features and apply robust categorical encoding.
-2. Filter the dataset to train only on the final college season for each player.
-3. Train LightGBM, XGBoost, and CatBoost models across 5 folds.
-4. Blend the predictions (40% LightGBM, 30% XGBoost, 30% CatBoost) and save `submission.csv` (deduplicated by `pid` automatically).
-5. Fit and serialize finalized full-dataset models to the `models/` directory.
+**Output:**
+1. Evaluates 5 models (LightGBM, XGBoost, CatBoost, Extra Trees, Logistic Regression) using Stratified Group K-Fold on unique player final seasons.
+2. Generates the final ensembled `submission.csv` (containing 6,261 unique player IDs with zero duplicates and zero null values).
+3. Saves the full-dataset model binaries into the `models/` directory:
+   * `final_lightgbm.joblib` / `36120-26SP-group38-26040826-final_lightgbm.joblib`
+   * `final_xgboost.joblib` / `36120-26SP-group38-26040826-final_xgboost.joblib`
+   * `final_catboost.joblib` / `36120-26SP-group38-26040826-final_catboost.joblib`
+   * `36120-26SP-group38-26040826-experiment3-model.joblib`
 
 ---
 
-## 4. Running the Tests
-To run all unit tests for the data cleaning, basketball features, cumulative stats, and processed datasets:
+## 4. Running Experimental Notebooks
+To batch execute all experimental walkthrough notebooks via the command line:
 
 ```bash
-# Run unit tests in the package directory
-python -m pytest 36120-26SP-group38-26040826-package/tests
-
-# Run verification tests in the project directory
-python -m pytest tests
+jupyter nbconvert --to notebook --execute --inplace notebooks/36120-26SP-group38-26040826-AT1-experiment-1.ipynb
+jupyter nbconvert --to notebook --execute --inplace notebooks/36120-26SP-group38-26040826-AT1-experiment-2.ipynb
+jupyter nbconvert --to notebook --execute --inplace notebooks/36120-26SP-group38-26040826-AT1-experiment-3.ipynb
 ```
+
+---
+
+## 5. Generating Evaluation Plots & Figures
+To regenerate all high-resolution reporting figures into `reports/figures/`:
+
+```bash
+python -m AT1_AML.plots
+```
+
+---
+
+## 6. Running Unit Tests
+To run all 13 unit tests verifying data cleaning, feature calculations, cumulative tracking, model metrics, and business draft ROI:
+
+```bash
+# Run unit tests
+pytest 36120-26SP-group38-26040826-package/tests
+
+# Run verification demo script
+python 36120-26SP-group38-26040826-package/verify_package.py
+```
+

@@ -41,3 +41,13 @@ These features capture the player's development trajectory by calculating histor
 * **`rec_rank_filled`**: Recruiting rank, with unranked players set to a default value of `150.0`.
 * **`is_major_conf`**: Binary indicator showing if the player's college belongs to a major basketball power conference (`ACC`, `SEC`, `B10`, `B12`, `BE`, `P10`, `P12`) loaded from `data/external/major_conferences.csv`.
 * **`pts_per_min` / `ast_per_min` / `stl_per_min` / `blk_per_min` / `treb_per_min`**: Direct court productivity stats divided by total minutes played (`mp`).
+
+---
+
+## 5. Composite Interactions & Multi-Dimensional Scouting Indices
+* **`bpm_age_interaction`**: Interaction multiplying Box Plus-Minus by age runway `bpm * (25.0 - age)`, rewarding elite production achieved at a young age.
+* **`conf_bpm_interaction`**: Power-conference scaled impact `bpm * (is_major_conf + 1.0)`, accounting for strength-of-schedule difficulty.
+* **`usage_bpm_interaction`**: Interaction term `usg * bpm`, isolating prospects who maintain positive overall impact despite high offensive ball usage.
+* **`scouting_score`**: Comprehensive multi-factor draft index combining Box Plus-Minus, scoring efficiency, defensive presence, and recruiting rank:
+  $$\text{Scouting Score} = (0.35 \times \text{BPM}) + (0.25 \times \text{Defensive Impact}) + (0.20 \times \text{TS\%}) + (0.20 \times \frac{100 - \text{Rec Rank}}{100})$$
+
