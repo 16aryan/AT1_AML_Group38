@@ -285,19 +285,28 @@ def main(
     plt.close()
     logger.success(f"Saved: {FIGURES_DIR / 'roc_vs_pr_comparison.png'}")
 
-    # 12. Model Probability Calibration Curve
+    # 12. Model Probability Calibration Curve & Distribution
     logger.info("Generating Probability Calibration Diagram...")
     from sklearn.calibration import calibration_curve
-    prob_true, prob_pred = calibration_curve(y, preds_lgb_proba, n_bins=10, strategy='quantile')
+    prob_true, prob_pred = calibration_curve(y, preds_lgb_proba, n_bins=10, strategy='uniform')
     
-    plt.figure(figsize=(7, 5))
-    plt.plot(prob_pred, prob_true, marker='o', lw=2, color='#2980b9', label='LightGBM Model')
-    plt.plot([0, 1], [0, 1], linestyle='--', color='gray', label='Perfect Calibration')
-    plt.xlabel('Mean Predicted Probability', fontsize=11)
-    plt.ylabel('Empirical Fraction of Positives', fontsize=11)
-    plt.title('Probability Calibration & Reliability Curve', fontsize=13, fontweight='bold')
-    plt.legend(loc='upper left')
-    plt.grid(True, linestyle='--', alpha=0.6)
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(7.5, 7), gridspec_kw={'height_ratios': [3, 1]}, sharex=True)
+    
+    # Reliability curve
+    ax1.plot(prob_pred, prob_true, marker='s', lw=2, color='#2980b9', label='LightGBM Model')
+    ax1.plot([0, 1], [0, 1], linestyle='--', color='gray', label='Perfect Calibration')
+    ax1.set_ylabel('Empirical Fraction of Positives', fontsize=11)
+    ax1.set_title('Probability Calibration & Reliability Diagram', fontsize=13, fontweight='bold')
+    ax1.legend(loc='upper left')
+    ax1.grid(True, linestyle='--', alpha=0.6)
+    
+    # Histogram of predicted probabilities
+    ax2.hist(preds_lgb_proba, bins=25, color='#34495e', edgecolor='white', alpha=0.85)
+    ax2.set_xlabel('Predicted Probability', fontsize=11)
+    ax2.set_ylabel('Count', fontsize=10)
+    ax2.set_yscale('log')
+    ax2.grid(True, linestyle='--', alpha=0.4)
+    
     plt.tight_layout()
     plt.savefig(FIGURES_DIR / "calibration_reliability_curve.png", dpi=300)
     plt.close()
