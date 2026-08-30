@@ -1,0 +1,25 @@
+pandas
+numpy
+scikit-learn
+matplotlib
+seaborn
+jupyter
+scipy
+
+# Gradient boosting models
+xgboost
+lightgbm
+catboost
+
+# Deep learning (optional, if used)
+tensorflow
+torch
+
+# Hyperparameter tuning
+optuna
+
+# Model explainability
+shap
+
+# Statistical modeling
+statsmodels
