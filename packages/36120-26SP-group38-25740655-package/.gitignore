@@ -1,0 +1,13 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+.pytest_cache/
+.coverage
+htmlcov/
+.ipynb_checkpoints/
+.DS_Store
+# Competition data is distributed through Kaggle and must not be committed.
+data/
+
+# dist/ is intentionally committed: it is the TestPyPI build artefact.

@@ -1,0 +1,46 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "nba-longevity-player-25740655"
+version = "0.4.0"
+description = "Player-level feature construction, seed-bagged XGBoost and AUPRC evaluation for predicting sustained NBA careers from college statistics."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Shreeya Patil" }]
+keywords = ["machine-learning", "basketball", "imbalanced-classification", "auprc", "xgboost"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+    "pandas>=2.0,!=2.2.3",
+    "numpy>=1.23",
+    "scikit-learn>=1.3",
+    "scipy>=1.10",
+    "joblib>=1.2",
+]
+
+[project.optional-dependencies]
+xgboost = ["xgboost>=2.0"]
+lightgbm = ["lightgbm>=4.0"]
+plots = ["matplotlib>=3.6"]
+dev = ["pytest>=7.0", "pytest-cov>=4.0", "build>=1.0", "twine>=4.0"]
+
+[project.urls]
+Homepage = "https://test.pypi.org/project/nba-longevity-player-25740655/"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

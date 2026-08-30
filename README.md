@@ -141,3 +141,79 @@ This training run and model architecture was developed by **Aryan Goel (26040826
 * **Predictions**: `submission.csv` (6,261 unique player rows, 0 duplicates, 0 nulls, ready for Kaggle submission)
 
 
+
+---
+
+## Shreeya Patil (25740655) — Individual Experiments
+
+This branch contains the experimentation completed by **Shreeya Patil
+(25740655)**.
+
+**Student branch:** `25740655-AT1-experiments`
+
+### Experiment notebooks
+
+| Experiment | Model | Validation AUPRC | Kaggle public score |
+|---|---|---:|---:|
+| 1 | Logistic Regression | 0.4364 | 0.48701 |
+| 2 | Random Forest | 0.4762 | 0.53774 |
+| 3 | Era-robust XGBoost + LightGBM rank blend | 0.4989 | **0.58982** |
+
+- [Experiment 1 — Logistic Regression](notebooks/36120-26SP-group38-25740655-AT1-experiment-1.ipynb)
+- [Experiment 2 — Random Forest](notebooks/36120-26SP-group38-25740655-AT1-experiment-2.ipynb)
+- [Experiment 3 — XGBoost and LightGBM rank blend](notebooks/36120-26SP-group38-25740655-AT1-experiment-3.ipynb)
+
+**Best approach:** Experiment 3, using within-season standardisation and an
+era-robust rank blend of XGBoost and LightGBM.
+
+### Generated model artefacts
+
+- `models/36120-26SP-group38-25740655-experiment-1-logistic.joblib`
+- `models/36120-26SP-group38-25740655-experiment-2-random-forest.joblib`
+- `models/36120-26SP-group38-25740655-experiment-3-xgb-lgbm.joblib`
+
+### Kaggle submission artefacts
+
+Each submission contains 6,261 unique player rows with the columns `pid` and
+`label`.
+
+- `data/processed/36120-26SP-group38-25740655-experiment-1-submission.csv`
+- `data/processed/36120-26SP-group38-25740655-experiment-2-submission.csv`
+- `data/processed/36120-26SP-group38-25740655-experiment-3-submission.csv`
+
+### Individual Python package
+
+A source snapshot of the individual package is included in:
+
+`packages/36120-26SP-group38-25740655-package/`
+
+The official package is published to TestPyPI as
+`nba-longevity-player-25740655==0.4.0`.
+
+Install it with:
+
+```bash
+pip install --index-url https://test.pypi.org/simple/ \
+  --extra-index-url https://pypi.org/simple/ \
+  "nba-longevity-player-25740655[xgboost,lightgbm,plots]==0.4.0"
+```
+
+The package contains reusable data preparation, player-level feature
+engineering, evaluation, modeling and Kaggle submission utilities. All 128
+package tests pass.
+
+### Re-executing the notebooks
+
+Place `train.csv`, `test.csv`, `metadata.csv` and `sample_submission.csv` in
+`data/raw/`, then run:
+
+```bash
+jupyter nbconvert --to notebook --execute --inplace \
+  notebooks/36120-26SP-group38-25740655-AT1-experiment-1.ipynb
+
+jupyter nbconvert --to notebook --execute --inplace \
+  notebooks/36120-26SP-group38-25740655-AT1-experiment-2.ipynb
+
+jupyter nbconvert --to notebook --execute --inplace \
+  notebooks/36120-26SP-group38-25740655-AT1-experiment-3.ipynb
+```
