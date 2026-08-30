@@ -141,3 +141,39 @@ This training run and model architecture was developed by **Aryan Goel (26040826
 * **Predictions**: `submission.csv` (6,261 unique player rows, 0 duplicates, 0 nulls, ready for Kaggle submission)
 
 
+---
+
+## Shreeya Patil (25740655) — Best Approach
+
+**Complete experimentation branch:**  
+[`25740655-AT1-experiments`](https://github.com/16aryan/AT1_AML_Group38/tree/25740655-AT1-experiments)
+
+The complete branch contains all three experiments, trained models, Kaggle
+submissions and a source snapshot of the individual Python package.
+
+### Selected model
+
+The best approach is **Experiment 3**, using within-season standardisation and
+an era-robust rank blend of XGBoost and LightGBM.
+
+| Result | Score |
+|---|---:|
+| Validation AUPRC | 0.4989 |
+| Kaggle public score | **0.58982** |
+
+### Best-approach artefacts
+
+- [Experiment 3 notebook](notebooks/36120-26SP-group38-25740655-AT1-experiment-3.ipynb)
+- `models/36120-26SP-group38-25740655-experiment-3-xgb-lgbm.joblib`
+- `data/processed/36120-26SP-group38-25740655-experiment-3-submission.csv`
+
+### Individual package
+
+The reusable package is published to TestPyPI as
+`nba-longevity-player-25740655==0.4.0`.
+
+```bash
+pip install --index-url https://test.pypi.org/simple/ \
+  --extra-index-url https://pypi.org/simple/ \
+  "nba-longevity-player-25740655[xgboost,lightgbm,plots]==0.4.0"
+```
