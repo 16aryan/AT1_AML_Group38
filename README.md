@@ -124,14 +124,6 @@ The repository documents the structured experimental progression across all Grou
 * **[Experiment 3: Feature Engineering & Ensembling](notebooks/36120-26SP-group38-26040826-AT1-experiment-3.ipynb)**  
   *110+ engineered features, gain-importance feature selection, 5-fold Stratified GroupKFold cross-validation, LightGBM/XGBoost/CatBoost blending, saving `models/36120-26SP-group38-26040826-experiment3-model.joblib` and generating the final `submission.csv`.*
 
-### 👥 Group Member Contributions & Exploration
-* **Student `25522032`:**
-  * [Experiment 1](notebooks/36120-26SP-group38-25522032-AT1-experiment-1.ipynb) | [Experiment 2](notebooks/36120-26SP-group38-25522032-AT1-experiment-2.ipynb) | [Experiment 3](notebooks/36120-26SP-group38-25522032-AT1-experiment-3.ipynb) | [Experiment 4](notebooks/36120-26SP-group38-25522032-AT1-experiment-4.ipynb) | [Experiment 5](notebooks/36120-26SP-group38-25522032-AT1-experiment-5.ipynb)
-* **Student `25740655`:**
-  * [Experiment 3 (XGBoost & LightGBM Stacking)](notebooks/36120-26SP-group38-25740655-AT1-experiment-3.ipynb) — *Saved: [`models/36120-26SP-group38-25740655-experiment-3-xgb-lgbm.joblib`](models/36120-26SP-group38-25740655-experiment-3-xgb-lgbm.joblib)*
-* **Student `26173702`:**
-  * [Experiment 1](notebooks/36120_26SP_group38_26173702_AT1_experiment_1.ipynb) | [Experiment 2](notebooks/36120_26SP_group38_26173702_AT1_experiment_2.ipynb) | [Experiment 3](notebooks/36120_26SP_group38_26173702_AT1_experiment_3.ipynb) | [Experiment 4](notebooks/36120_26SP_group38_26173702_AT1_experiment_4.ipynb)
-  * *Explored SVM RBF, Logistic Regression, Plain XGBoost, Random Forest, and HistGradientBoosting.*
 
 ---
 
@@ -205,33 +197,25 @@ jupyter nbconvert --to notebook --execute --inplace notebooks/36120-26SP-group38
 # Execute Experiment 3: Full Feature Engineering & Winning Ensemble
 jupyter nbconvert --to notebook --execute --inplace notebooks/36120-26SP-group38-26040826-AT1-experiment-3.ipynb
 ```
+*(Or launch interactively using `jupyter lab` or `jupyter notebook`).*
 
-### 3. Running Model Inference with Python
-```python
-import joblib
-import pandas as pd
+## Latest Model Performance & Credit
 
-# 1. Load the pre-trained ensemble model
-model = joblib.load("models/36120-26SP-group38-26040826-experiment3-model.joblib")
+This training run and model architecture was developed by **Aryan Goel (26040826)**.
 
-# 2. Load the processed feature matrix
-X_test = pd.read_csv("data/processed/X_test.csv")
+### Out-of-Fold (OOF) Performance Scores (AUPRC)
+* **LightGBM**: `0.48416`
+* **Extra Trees**: `0.49197`
+* **Logistic Regression**: `0.48983`
+* **XGBoost**: `0.50970`
+* **CatBoost**: `0.51188`
+* **Blended Ensemble**: **`0.52035`** *(Peak Performance)*
 
-# 3. Generate continuous probability predictions
-predictions = model.predict_proba(X_test)[:, 1]
+### Generated Model Artifacts (`models/`)
+* **LightGBM**: `models/final_lightgbm.joblib`, `models/final_lightgbm.txt`, `models/36120-26SP-group38-26040826-final_lightgbm.joblib`
+* **XGBoost**: `models/final_xgboost.joblib`, `models/final_xgboost.json`, `models/36120-26SP-group38-26040826-final_xgboost.joblib`
+* **CatBoost**: `models/final_catboost.joblib`, `models/final_catboost.cbm`, `models/36120-26SP-group38-26040826-final_catboost.joblib`
+* **Experiment 3 Final Model**: `models/36120-26SP-group38-26040826-experiment3-model.joblib`
+* **Predictions**: `submission.csv` (6,261 unique player rows, 0 duplicates, 0 nulls, ready for Kaggle submission)
 
-# 4. Export formatted predictions
-submission = pd.DataFrame({"pid": pd.read_csv("data/processed/test_processed.csv")["pid"], "prob": predictions})
-submission.to_csv("submission.csv", index=False)
-print(f"Predictions saved for {len(submission):,} prospects with 0 nulls.")
-```
 
----
-
-## 👥 Contributors & Project Metadata
-
-* **Institution:** University of Technology Sydney (UTS)
-* **Subject:** 36120 Applied Machine Learning (Autumn 2026)
-* **Group:** Group 38
-* **Lead Modeling & Pipeline Author:** Aryan Goel (`26040826`)
-* **Team Members:** `25522032`, `25740655`, `26173702`
