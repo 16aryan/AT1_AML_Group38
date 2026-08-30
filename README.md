@@ -167,7 +167,6 @@ AT1_AML_Group38/
 ├── notebooks/                                                 <- Complete experimental progression notebooks
 └── reports/
     ├── summary_report.md                                      <- Executive technical summary report
-    ├── 36120-26SP-group38-26173702-report.docx                <- Individual written report artifact
     └── figures/                                               <- Visualizations embedded in documentation
         ├── class_distribution.png                             <- Target label distribution visual
         ├── model_comparison_auprc.png                         <- AUPRC leaderboard bar chart
