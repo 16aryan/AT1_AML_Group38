@@ -1,8 +1,0 @@
-site_name: "NBA Career Longevity Prediction — Group 38"
-site_author: "Aryan Goel (26040826)"
-repo_url: "https://github.com/16aryan/AT1_AML_Group38"
-repo_name: "16aryan/AT1_AML_Group38"
-
-nav:
-  - Overview: index.md
-  - Getting Started: getting-started.md
